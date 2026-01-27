@@ -1,0 +1,287 @@
+@startuml ProcessHub Class Diagram
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam defaultTextAlignment center
+
+title ProcessHub - Class Diagram
+
+' ============================================================================
+' Runtime Classes
+' ============================================================================
+
+package "Runtime" #e8f5e9 {
+    class ProcessHubServer {
+        - _transport: Transport
+        - _executor: ProcessExecutor
+        - _core: ProcessHubCore
+        - _view: BaseView
+        - _running: bool
+        --
+        + run(): void
+        + stop(): void
+        + get_state(): HubStateSnapshot
+    }
+
+    class ProcessHubClient {
+        - _panel_id: str
+        - _session_id: str
+        - _transport: Transport
+        - _on_restart_notify: Callback
+        - _on_restart_complete: Callback
+        --
+        + register(): void
+        + unregister(): void
+        + request_processes(names): void
+        + acknowledge_restart(): void
+    }
+}
+
+' ============================================================================
+' Core Classes
+' ============================================================================
+
+package "Core" #c8e6c9 {
+    class ProcessHubCore {
+        - _connections: ConnectionRegistry
+        - _processes: ProcessRegistry
+        - _restart: RestartStateMachine
+        --
+        + add_connection(panel_id, session_id)
+        + remove_connection(panel_id)
+        + register_process(name)
+        + handle_dead_process(name)
+        + get_state(): HubStateSnapshot
+    }
+
+    class ConnectionRegistry {
+        - _connections: dict[str, Connection]
+        --
+        + add(panel_id, session_id)
+        + remove(panel_id)
+        + get_all(): list[Connection]
+        + get_panels_for_process(name): list[str]
+    }
+
+    class ProcessRegistry {
+        - _processes: dict[str, ProcessInfo]
+        --
+        + register(name)
+        + update_state(name, state, pid)
+        + add_requester(name, panel_id)
+        + remove_requester(name, panel_id)
+        + get_all(): list[ProcessInfo]
+    }
+
+    class RestartStateMachine {
+        - _state: RestartPhase
+        - _dead_processes: list[str]
+        - _pending_panels: list[str]
+        - _acknowledged: set[str]
+        --
+        + start_restart(processes)
+        + handle_acknowledgment(panel_id)
+        + complete_restart()
+        + get_state(): RestartState
+    }
+
+    enum RestartPhase {
+        IDLE
+        DETECTING
+        NOTIFYING
+        AWAITING_ACK
+        RESTARTING
+        DONE
+        FAILED
+    }
+}
+
+' ============================================================================
+' Transport Classes
+' ============================================================================
+
+package "Transport" #fff3e0 {
+    abstract class Transport {
+        + {abstract} start()
+        + {abstract} stop()
+        + {abstract} send_message(topic, message)
+        + {abstract} subscribe(topic, handler)
+    }
+
+    class ZmqTransport {
+        - _pub_socket: Socket
+        - _sub_socket: Socket
+        - _req_socket: Socket
+        - _context: Context
+        --
+        + start()
+        + stop()
+        + send_message(topic, message)
+        + send_message_async(topic, message)
+    }
+
+    class InMemoryTransport {
+        - _subscribers: dict
+        - _message_queue: Queue
+        --
+        + start()
+        + stop()
+        + send_message(topic, message)
+        + get_messages(): list
+    }
+
+    Transport <|-- ZmqTransport
+    Transport <|-- InMemoryTransport
+}
+
+' ============================================================================
+' Process Classes
+' ============================================================================
+
+package "Process" #fce4ec {
+    abstract class ProcessExecutor {
+        + {abstract} start(name, config): tuple
+        + {abstract} stop(name, force): tuple
+        + {abstract} is_running(name): bool
+        + {abstract} get_pid(name): int
+    }
+
+    class SimpleExecutor {
+        - _processes: dict
+        - _pids: dict
+        - _stop_timeout: float
+        --
+        + start(name, config): tuple
+        + stop(name, force): tuple
+        + is_running(name): bool
+    }
+
+    class WindowsExecutor {
+        - _processes: dict
+        - _terminate_script: str
+        --
+        + start(name, config): tuple
+        + stop(name, force): tuple
+        + is_running(name): bool
+    }
+
+    class MockExecutor {
+        - _running: set[str]
+        - _pids: dict
+        --
+        + start(name, config): tuple
+        + stop(name, force): tuple
+        + simulate_crash(name)
+    }
+
+    class LoggingAwareExecutor {
+        - _executor: ProcessExecutor
+        - _logging: LoggingIntegration
+        --
+        + start(name, config): tuple
+        + stop(name, force): tuple
+    }
+
+    ProcessExecutor <|-- SimpleExecutor
+    ProcessExecutor <|-- WindowsExecutor
+    ProcessExecutor <|-- MockExecutor
+    ProcessExecutor <|.. LoggingAwareExecutor : wraps
+}
+
+' ============================================================================
+' UI Classes
+' ============================================================================
+
+package "UI" #f3e5f5 {
+    abstract class BaseView {
+        + {abstract} start()
+        + {abstract} stop()
+        + {abstract} update(snapshot)
+    }
+
+    class WebView {
+        - _app: FastAPI
+        - _host: str
+        - _port: int
+        - _admin_callbacks: dict
+        --
+        + start()
+        + stop()
+        + url: str
+        + docs_url: str
+    }
+
+    class ConsoleView {
+        - _running: bool
+        --
+        + start()
+        + stop()
+        + update(snapshot)
+    }
+
+    class NullView {
+        + start()
+        + stop()
+        + update(snapshot)
+    }
+
+    BaseView <|-- WebView
+    BaseView <|-- ConsoleView
+    BaseView <|-- NullView
+}
+
+' ============================================================================
+' Data Classes
+' ============================================================================
+
+package "Models" #f5f5f5 {
+    class HubStateSnapshot {
+        + connections: list[ConnectionSnapshot]
+        + processes: list[ProcessSnapshot]
+        + restart: RestartState
+    }
+
+    class ConnectionSnapshot {
+        + panel_id: str
+        + session_id: str
+        + connected_at: datetime
+        + requested_processes: list[str]
+    }
+
+    class ProcessSnapshot {
+        + name: str
+        + state: ProcessState
+        + pid: int
+        + requesters: list[str]
+    }
+
+    enum ProcessState {
+        REGISTERED
+        STARTING
+        RUNNING
+        STOPPING
+        STOPPED
+        DEAD
+        FAILED
+    }
+}
+
+' ============================================================================
+' Relationships
+' ============================================================================
+
+ProcessHubServer --> ProcessHubCore
+ProcessHubServer --> Transport
+ProcessHubServer --> ProcessExecutor
+ProcessHubServer --> BaseView
+
+ProcessHubClient --> Transport
+
+ProcessHubCore --> ConnectionRegistry
+ProcessHubCore --> ProcessRegistry
+ProcessHubCore --> RestartStateMachine
+
+ProcessHubCore ..> HubStateSnapshot : creates
+
+LoggingAwareExecutor --> ProcessExecutor
+
+@enduml

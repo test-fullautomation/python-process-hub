@@ -1,0 +1,98 @@
+@startuml class_ui
+!theme plain
+title Process Hub - UI Module Classes
+
+skinparam class {
+    BackgroundColor<<protocol>> #CCCCFF
+}
+
+package "ui" {
+
+    interface HubView <<protocol>> {
+        +render(snapshot: HubStateSnapshot): void
+        +show_message(message: str): void
+        +show_error(error: str): void
+    }
+
+    class ConsoleView {
+        -_last_render: float
+        -_min_interval: float
+        +render(snapshot): void
+        +show_message(message): void
+        +show_error(error): void
+        -_format_process_table(processes): str
+        -_format_connection_table(connections): str
+        -_format_restart_status(snapshot): str
+        -_clear_screen(): void
+    }
+
+    class NullView {
+        +render(snapshot): void
+        +show_message(message): void
+        +show_error(error): void
+    }
+
+    ConsoleView ..|> HubView
+    NullView ..|> HubView
+
+    note right of HubView
+      **Protocol-based UI (Improvement 3.6)**
+      - UI completely decoupled from server
+      - Easy to implement custom views
+      - NullView for headless operation
+      - ConsoleView for TUI display
+    end note
+
+    note bottom of ConsoleView
+      **Console Features:**
+      - Process status table
+      - Connection list
+      - Restart state display
+      - Rate-limited rendering
+    end note
+
+    note bottom of NullView
+      **NullView Usage:**
+      - Testing
+      - Headless servers
+      - Background services
+    end note
+}
+
+package "HubStateSnapshot Structure" {
+    class HubStateSnapshot {
+        +connections: tuple[ConnectionInfo]
+        +processes: tuple[ProcessInfo]
+        +restart_state: str
+        +killed_processes: tuple[str]
+    }
+
+    class ConnectionInfo {
+        +panel_id: str
+        +session_id: str
+        +connected_at: float
+        +session_panel_ids: frozenset[str]
+    }
+
+    class ProcessInfo {
+        +name: str
+        +state: ProcessState
+        +pid: Optional[int]
+        +requesters: frozenset[str]
+        +started_at: Optional[float]
+    }
+
+    HubStateSnapshot --> ConnectionInfo : contains
+    HubStateSnapshot --> ProcessInfo : contains
+
+    note bottom of HubStateSnapshot
+      **Immutable Snapshot (Improvement 3.2)**
+      - All data is frozen/immutable
+      - Safe for UI thread to read
+      - No locking required
+    end note
+}
+
+HubView ..> HubStateSnapshot : receives
+
+@enduml

@@ -1,0 +1,205 @@
+@startuml ProcessHub Architecture
+!theme plain
+skinparam componentStyle rectangle
+skinparam defaultTextAlignment center
+skinparam packageStyle rectangle
+
+title ProcessHub Library - Architecture Diagram
+
+' ============================================================================
+' Colors
+' ============================================================================
+skinparam component {
+    BackgroundColor<<client>> #e3f2fd
+    BackgroundColor<<server>> #e8f5e9
+    BackgroundColor<<transport>> #fff3e0
+    BackgroundColor<<process>> #fce4ec
+    BackgroundColor<<ui>> #f3e5f5
+    BackgroundColor<<external>> #f5f5f5
+}
+
+' ============================================================================
+' External Actors
+' ============================================================================
+
+actor "Panel Application" as PanelApp
+actor "Admin User" as AdminUser
+actor "Browser" as BrowserUser
+
+' ============================================================================
+' Client Side
+' ============================================================================
+
+package "Client Side" as ClientSide #e3f2fd {
+    component "ProcessHubClient" as Client <<client>> {
+        component "Connection\nManager" as ConnMgr
+        component "Message\nHandler" as MsgHandler
+        component "Restart\nHandler" as RestartHandler
+    }
+}
+
+' ============================================================================
+' Transport Layer
+' ============================================================================
+
+package "Transport Layer" as TransportLayer #fff3e0 {
+    component "ZmqTransport" as ZmqTransport <<transport>> {
+        component "PUB Socket\n(5555)" as PubSocket
+        component "SUB Socket\n(5556)" as SubSocket
+        component "REQ/REP\n(5557)" as ReqRepSocket
+    }
+
+    component "InMemoryTransport" as InMemoryTransport <<transport>> {
+        component "Message Queue" as MsgQueue
+    }
+
+    note bottom of ZmqTransport
+        Production transport
+        using ZeroMQ
+    end note
+
+    note bottom of InMemoryTransport
+        Testing transport
+        (no network)
+    end note
+}
+
+' ============================================================================
+' Server Side
+' ============================================================================
+
+package "Server Side" as ServerSide #e8f5e9 {
+
+    component "ProcessHubServer" as Server <<server>> {
+        component "ProcessHubCore" as Core {
+            component "Connection\nRegistry" as ConnRegistry
+            component "Process\nRegistry" as ProcRegistry
+            component "Restart\nState Machine" as RestartSM
+        }
+
+        component "Health\nMonitor" as HealthMonitor
+        component "State\nSnapshot" as Snapshot
+    }
+}
+
+' ============================================================================
+' Process Layer
+' ============================================================================
+
+package "Process Layer" as ProcessLayer #fce4ec {
+
+    component "ProcessExecutor" as Executor <<process>> {
+        component "SimpleExecutor" as SimpleExec
+        component "WindowsExecutor" as WinExec
+        component "MockExecutor" as MockExec
+    }
+
+    component "LoggingAwareExecutor" as LoggingExec <<process>>
+
+    component "Logging\nIntegration" as LoggingInt <<process>> {
+        component "FluentBit" as FluentBit
+        component "Telegraf" as Telegraf
+    }
+}
+
+' ============================================================================
+' UI Layer
+' ============================================================================
+
+package "UI Layer" as UILayer #f3e5f5 {
+
+    component "WebView" as WebView <<ui>> {
+        component "FastAPI\nServer" as FastAPI
+        component "REST API" as RestAPI
+        component "Admin API" as AdminAPI
+        component "Static Files\n(HTML/CSS/JS)" as StaticFiles
+    }
+
+    component "ConsoleView" as ConsoleView <<ui>> {
+        component "ASCII\nDashboard" as AsciiDash
+    }
+
+    component "NullView" as NullView <<ui>>
+}
+
+' ============================================================================
+' External Systems
+' ============================================================================
+
+package "Managed Processes" as ManagedProcs #f5f5f5 {
+    component "Process 1" as Proc1 <<external>>
+    component "Process 2" as Proc2 <<external>>
+    component "Process N" as ProcN <<external>>
+}
+
+database "Configuration\n(JSON)" as ConfigDB <<external>>
+
+' ============================================================================
+' Relationships - Client to Transport
+' ============================================================================
+
+PanelApp --> Client : uses
+Client --> ZmqTransport : connect
+Client --> InMemoryTransport : connect\n(testing)
+
+' ============================================================================
+' Relationships - Transport to Server
+' ============================================================================
+
+ZmqTransport <--> Server : messages
+InMemoryTransport <--> Server : messages
+
+' ============================================================================
+' Relationships - Server Internal
+' ============================================================================
+
+Server --> Executor : delegates
+Server --> Snapshot : generates
+Core --> HealthMonitor : triggers
+HealthMonitor --> ProcRegistry : updates
+RestartSM --> ConnRegistry : notifies
+
+' ============================================================================
+' Relationships - Executor
+' ============================================================================
+
+Executor --> Proc1 : start/stop
+Executor --> Proc2 : start/stop
+Executor --> ProcN : start/stop
+LoggingExec --> Executor : wraps
+LoggingExec --> LoggingInt : configures
+
+' ============================================================================
+' Relationships - UI
+' ============================================================================
+
+Server --> WebView : state
+Server --> ConsoleView : state
+Server --> NullView : state
+
+BrowserUser --> WebView : HTTP
+AdminUser --> AdminAPI : control
+
+WebView --> Server : admin\ncommands
+
+' ============================================================================
+' Relationships - Configuration
+' ============================================================================
+
+ConfigDB --> Server : load config
+
+' ============================================================================
+' Legend
+' ============================================================================
+
+legend right
+    |= Color |= Component Type |
+    | <#e3f2fd> | Client Components |
+    | <#e8f5e9> | Server Components |
+    | <#fff3e0> | Transport Layer |
+    | <#fce4ec> | Process Management |
+    | <#f3e5f5> | UI Layer |
+    | <#f5f5f5> | External Systems |
+endlegend
+
+@enduml

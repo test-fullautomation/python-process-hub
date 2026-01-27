@@ -1,0 +1,9 @@
+# ProcessHub Web Dashboard Requirements
+# Install: pip install -r requirements-web.txt
+
+# Core
+psutil>=5.9.0
+
+# Web Dashboard (FastAPI)
+fastapi>=0.100.0
+uvicorn>=0.20.0

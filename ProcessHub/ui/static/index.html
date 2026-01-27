@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<!--
+  Process Hub Dashboard
+
+  Copyright 2020-2026 Robert Bosch GmbH
+  Licensed under the Apache License, Version 2.0
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Process Hub Dashboard</title>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h1>Process Hub</h1>
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    <span>Live</span>
+                </div>
+            </div>
+
+            <ul class="nav-tabs">
+                <li class="nav-item active" data-tab="dashboard">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                    <span>Dashboard</span>
+                </li>
+                <li class="nav-item" data-tab="admin" id="navAdmin">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M12 1v6m0 6v10M1 12h6m6 0h10"></path>
+                    </svg>
+                    <span>Admin Controls</span>
+                    <span class="nav-badge" id="adminBadge"></span>
+                </li>
+                <li class="nav-item" data-tab="config" id="navConfig">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                        <path d="M2 17l10 5 10-5"></path>
+                        <path d="M2 12l10 5 10-5"></path>
+                    </svg>
+                    <span>Configuration</span>
+                    <span class="nav-badge" id="configBadge"></span>
+                </li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-links">
+                    <a href="/docs" target="_blank">API Docs</a>
+                    <a href="/redoc" target="_blank">ReDoc</a>
+                </div>
+                <span class="last-update" id="lastUpdate"></span>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Dashboard View -->
+            <div class="view active" id="view-dashboard">
+                <div class="view-header">
+                    <h2>Dashboard</h2>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Connections</h3>
+                        <div class="value" id="connectionCount">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Processes</h3>
+                        <div class="value" id="processCount">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Running</h3>
+                        <div class="value" id="runningCount">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Restart Phase</h3>
+                        <div class="value" id="restartPhase" style="font-size: 18px;">IDLE</div>
+                    </div>
+                </div>
+
+                <div class="section" id="restartSection">
+                    <h2>Restart Status</h2>
+                    <div id="restartContent">
+                        <p style="color: #888;">No restart in progress</p>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>Connections</h2>
+                    <div id="connectionsContent">
+                        <div class="empty-state">No connections</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>Processes</h2>
+                    <div id="processesContent">
+                        <div class="empty-state">No processes</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="console-header">
+                        <h2>Console Logs</h2>
+                        <div class="console-actions">
+                            <button class="btn btn-primary" onclick="downloadLogs()">Save Logs</button>
+                            <button class="btn btn-danger" onclick="clearLogs()">Clear</button>
+                        </div>
+                    </div>
+                    <div class="console-filters">
+                        <div class="filter-group">
+                            <label for="loggerFilter">Logger:</label>
+                            <select id="loggerFilter" onchange="onLoggerFilterChange()">
+                                <option value="">All Loggers</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="loggerInclude">Include:</label>
+                            <input type="text" id="loggerInclude" placeholder="prefix..."
+                                   oninput="onIncludeFilterChange()" title="Show only loggers starting with this prefix">
+                        </div>
+                        <div class="filter-group">
+                            <label for="loggerExclude">Exclude:</label>
+                            <input type="text" id="loggerExclude" placeholder="prefix..."
+                                   oninput="onExcludeFilterChange()" title="Hide loggers starting with this prefix">
+                        </div>
+                        <div class="filter-group">
+                            <label for="levelFilter">Level:</label>
+                            <select id="levelFilter" onchange="onLevelFilterChange()">
+                                <option value="">All</option>
+                                <option value="DEBUG">DEBUG</option>
+                                <option value="INFO">INFO</option>
+                                <option value="WARNING">WARNING</option>
+                                <option value="ERROR">ERROR</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-small" onclick="resetLogFilters()">Reset</button>
+                    </div>
+                    <div class="console-log" id="consoleLog">
+                        <div class="empty-state">No logs yet</div>
+                    </div>
+                    <div class="console-footer">
+                        <span id="logCount">0 entries</span>
+                        <label class="auto-scroll-toggle">
+                            <input type="checkbox" id="autoScroll" checked>
+                            Auto-scroll
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Controls View -->
+            <div class="view" id="view-admin">
+                <div class="view-header">
+                    <h2>Admin Controls</h2>
+                    <span class="view-status" id="adminStatus">Checking...</span>
+                </div>
+
+                <div class="section admin-section" id="adminSection">
+                    <h3>Start Process</h3>
+                    <p class="section-desc">
+                        Enter a process name to start it, or use the inline buttons in the Processes table on the Dashboard.
+                    </p>
+                    <div class="admin-controls">
+                        <div class="admin-input-group">
+                            <div class="autocomplete-wrapper">
+                                <input type="text" class="admin-input" id="processName"
+                                       placeholder="Enter process name..."
+                                       autocomplete="off">
+                                <div class="autocomplete-dropdown" id="processAutocomplete"></div>
+                            </div>
+                            <button class="btn btn-success" onclick="adminStartProcess()">Start Process</button>
+                        </div>
+                    </div>
+                    <div class="admin-result" id="adminResult"></div>
+
+                    <div class="available-processes-section">
+                        <h3>Available Processes</h3>
+                        <p class="section-desc">Click on a process name to start it.</p>
+                        <div class="process-chips" id="processChips">
+                            <span class="empty-state">Loading...</span>
+                        </div>
+                    </div>
+
+                    <div class="reset-hub-section">
+                        <h3>Reset Hub</h3>
+                        <p class="section-desc">
+                            Remove all connections and stop all processes to reset the hub to a fresh state.
+                        </p>
+                        <button class="btn btn-danger" onclick="resetHub()">Reset Hub</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuration View -->
+            <div class="view" id="view-config">
+                <div class="view-header">
+                    <h2>Process Configuration</h2>
+                    <span class="view-status" id="configStatus">Checking...</span>
+                </div>
+
+                <div class="section config-section" id="configSection">
+                    <h3>Add / Edit Configuration</h3>
+                    <p class="section-desc">
+                        Add new process configurations or edit existing ones.
+                    </p>
+
+                    <div class="config-form" id="configForm">
+                        <div class="config-field">
+                            <label for="configName">Process Name *</label>
+                            <input type="text" id="configName" placeholder="my_process">
+                        </div>
+                        <div class="config-field">
+                            <label for="configScript">Script Path *</label>
+                            <input type="text" id="configScript" placeholder="python or /path/to/script.py">
+                        </div>
+                        <div class="config-field">
+                            <label for="configWaitTime">Wait Time (seconds)</label>
+                            <input type="number" id="configWaitTime" value="2.0" step="0.5" min="0">
+                        </div>
+                        <div class="config-field full-width">
+                            <label for="configDescription">Description</label>
+                            <input type="text" id="configDescription" placeholder="Brief description of the process">
+                        </div>
+                        <div class="config-field full-width">
+                            <label for="configArgs">Arguments (JSON array)</label>
+                            <textarea id="configArgs" placeholder='["-c", "print(\"Hello\")"]'></textarea>
+                            <span class="hint">Example: ["-m", "http.server", "8000"]</span>
+                        </div>
+                        <div class="config-field full-width">
+                            <label for="configEnv">Environment Variables (JSON object)</label>
+                            <textarea id="configEnv" placeholder='{"MY_VAR": "value"}'></textarea>
+                            <span class="hint">Example: {"DEBUG": "1", "PORT": "3000"}</span>
+                        </div>
+                        <div class="config-field full-width">
+                            <label for="configWarning">Warning on Deselect</label>
+                            <input type="text" id="configWarning" placeholder="Warning message when deselecting">
+                        </div>
+                        <div class="config-checkboxes">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="configEnable" checked>
+                                <span>Enable</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="configMandatory">
+                                <span>Mandatory</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="configCentralLog">
+                                <span>Central Log</span>
+                            </label>
+                        </div>
+                        <div class="config-actions">
+                            <button class="btn btn-secondary" onclick="clearConfigForm()">Clear</button>
+                            <button class="btn btn-success" onclick="addProcessConfig()">Add Configuration</button>
+                        </div>
+                    </div>
+
+                    <div class="config-result" id="configResult"></div>
+
+                    <div class="config-table-container">
+                        <h3>Current Configurations</h3>
+                        <div id="configTableContent">
+                            <div class="empty-state">Loading configurations...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer>
+                Process Hub v1.0.0 | Powered by FastAPI |
+                <a href="https://github.com/test-fullautomation/python-process-hub/python-process-hub" target="_blank">GitHub</a>
+            </footer>
+        </main>
+    </div>
+
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

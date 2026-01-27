@@ -1,0 +1,89 @@
+@startuml Basic Client-Server Sequence
+!theme plain
+skinparam sequenceMessageAlign center
+
+title ProcessHub - Basic Client-Server Flow
+
+participant "Panel\nApplication" as App #e0e0e0
+participant "ProcessHub\nClient" as Client #e3f2fd
+participant "ZMQ\nTransport" as Transport #fff3e0
+participant "ProcessHub\nServer" as Server #e8f5e9
+participant "Process\nExecutor" as Exec #fce4ec
+participant "Managed\nProcess" as Proc #f5f5f5
+
+== Initialization ==
+
+App -> Client : ProcessHubClient(\n  panel_id="my_panel",\n  transport=transport\n)
+Client -> Transport : connect()
+Transport --> Client : connected
+
+== Registration ==
+
+App -> Client : register()
+Client -> Transport : send("panel.register", {...})
+Transport -> Server : message
+Server -> Server : add_connection(\n  panel_id, session_id\n)
+Server -> Transport : send("server.registered", {...})
+Transport -> Client : message
+Client --> App : registered
+
+== Request Processes ==
+
+App -> Client : request_processes(\n  ["worker_1", "worker_2"]\n)
+
+Client -> Transport : send("panel.request", {...})
+Transport -> Server : message
+
+loop for each process
+    Server -> Exec : start(name, config)
+    Exec -> Proc : subprocess.Popen(cmd)
+    Proc --> Exec : running (pid)
+    Exec --> Server : (True, msg, pid)
+    Server -> Server : update_registry(\n  state=RUNNING\n)
+end
+
+Server -> Transport : send("server.processes_started", {...})
+Transport -> Client : message
+Client --> App : processes_started
+
+== Health Monitoring ==
+
+loop every refresh_interval
+    Server -> Exec : is_running(name)
+    Exec --> Server : True/False
+    alt Process Dead
+        Server -> Server : handle_dead_process()
+        note right: Triggers restart\ncoordination
+    end
+end
+
+== State Updates (WebView) ==
+
+Server -> Server : get_state_snapshot()
+note right
+    Returns immutable snapshot:
+    - connections
+    - processes
+    - restart_state
+end note
+
+== Cleanup ==
+
+App -> Client : unregister()
+Client -> Transport : send("panel.unregister", {...})
+Transport -> Server : message
+
+Server -> Server : remove_connection()
+
+alt No more requesters
+    Server -> Exec : stop(name)
+    Exec -> Proc : terminate()
+    Proc --> Exec : stopped
+    Exec --> Server : (True, msg)
+end
+
+Server -> Transport : send("server.unregistered", {...})
+Transport -> Client : message
+Client --> App : unregistered
+
+@enduml

@@ -1,0 +1,89 @@
+@startuml Restart Coordination Sequence
+!theme plain
+skinparam sequenceMessageAlign center
+
+title ProcessHub - Restart Coordination Sequence
+
+participant "Panel A" as PanelA #e3f2fd
+participant "Panel B" as PanelB #e3f2fd
+participant "Server" as Server #e8f5e9
+participant "Core" as Core #c8e6c9
+participant "Restart SM" as RSM #fff3e0
+participant "Executor" as Exec #fce4ec
+participant "Process" as Proc #f5f5f5
+
+== Normal Operation ==
+
+PanelA -> Server : register(panel_id="A")
+Server -> Core : add_connection("A")
+PanelA -> Server : request_processes(["worker_1"])
+Server -> Exec : start("worker_1", config)
+Exec -> Proc : subprocess.Popen()
+Proc --> Exec : pid=1234
+Exec --> Server : (True, "Started", 1234)
+Server --> PanelA : process_started("worker_1")
+
+PanelB -> Server : register(panel_id="B")
+Server -> Core : add_connection("B")
+PanelB -> Server : request_processes(["worker_1"])
+note right: worker_1 already running\n(shared, ref_count=2)
+Server --> PanelB : process_started("worker_1")
+
+== Process Crash Detection ==
+
+Proc -> Proc : **CRASH!**
+destroy Proc
+
+Server -> Core : health_check()
+Core -> Exec : is_running("worker_1")
+Exec --> Core : False
+Core -> RSM : handle_dead_process("worker_1")
+
+== Restart Coordination ==
+
+RSM -> RSM : state = DETECTING
+RSM -> Core : get_panels_for_process("worker_1")
+Core --> RSM : ["A", "B"]
+
+RSM -> RSM : state = NOTIFYING
+RSM -> PanelA : restart_notify(["worker_1"])
+RSM -> PanelB : restart_notify(["worker_1"])
+
+PanelA -> PanelA : save_state()
+PanelB -> PanelB : save_state()
+
+RSM -> RSM : state = AWAITING_ACK
+
+PanelA -> Server : acknowledge_restart()
+RSM -> RSM : ack_count = 1
+
+PanelB -> Server : acknowledge_restart()
+RSM -> RSM : ack_count = 2\n(all panels acknowledged)
+
+RSM -> RSM : state = RESTARTING
+
+RSM -> Exec : stop("worker_1")
+Exec --> RSM : (True, "stopped")
+
+RSM -> Exec : start("worker_1", config)
+Exec -> Proc : subprocess.Popen()
+Proc --> Exec : pid=5678
+Exec --> RSM : (True, "Started", 5678)
+
+RSM -> RSM : state = DONE
+
+RSM -> PanelA : restart_complete(success=True)
+RSM -> PanelB : restart_complete(success=True)
+
+PanelA -> PanelA : resume_operations()
+PanelB -> PanelB : resume_operations()
+
+RSM -> RSM : state = IDLE
+
+note over RSM
+    Timeout handling:
+    If panels don't ACK within
+    timeout, restart proceeds anyway
+end note
+
+@enduml

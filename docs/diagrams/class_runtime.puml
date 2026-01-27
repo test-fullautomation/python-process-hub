@@ -1,0 +1,146 @@
+@startuml class_runtime
+!theme plain
+title Process Hub - Runtime Module Classes
+
+skinparam class {
+    BackgroundColor<<protocol>> #CCCCFF
+    BackgroundColor<<enum>> #FFFFCC
+}
+
+package "runtime" {
+
+    enum Topics <<enum>> {
+        REGISTER_REQUEST
+        REGISTER_RESPONSE
+        UNREGISTER_REQUEST
+        UNREGISTER_RESPONSE
+        CONNECTION_INFO_REQUEST
+        CONNECTION_INFO_RESPONSE
+        START_REQUEST
+        START_RESPONSE
+        STOP_REQUEST
+        STOP_RESPONSE
+        RESTART_NOTIFY
+        RESTART_READY
+        RESTART_DONE
+        SHUTDOWN_NOTIFY
+    }
+
+    interface ProcessExecutor <<protocol>> {
+        +start(name, config): tuple[bool, str, Optional[int]]
+        +stop(name, force): bool
+        +is_running(name): bool
+    }
+
+    class ProcessHubServer {
+        -_transport: TransportBase
+        -_executor: ProcessExecutor
+        -_view: HubView
+        -_config: dict[str, dict]
+        -_refresh_interval: float
+        -_running: bool
+        -_core: ProcessHubCore
+        +core: ProcessHubCore
+        +is_running: bool
+        +start(): void
+        +stop(): void
+        +run(): void
+        +reset(): tuple[bool, str]
+        -_register_handlers(): void
+        -_send_messages(messages): void
+        -_serialize_message(message): dict
+        -_deserialize_data(data): dict
+        -_start_process(name): tuple
+        -_stop_process(name, force): bool
+        -_check_health(names): list[str]
+        -_on_register_request(data): void
+        -_on_unregister_request(data): void
+        -_on_start_request(data): void
+        -_on_stop_request(data): void
+        -_on_restart_ready(data): void
+        -_on_connection_info_request(data): void
+        -_setup_signal_handlers(): void
+        -_signal_handler(signum, frame): void
+    }
+
+    class ClientController {
+        -_callbacks: dict[str, list[Callable]]
+        +connect(event, callback): void
+        +disconnect(event, callback): void
+        +emit(event, data): void
+    }
+
+    class ProcessHubClient {
+        -_transport: TransportBase
+        -_panel_id: str
+        -_session_id: Optional[str]
+        -_default_timeout: float
+        -_registered: bool
+        -_pending_requests: dict[str, Event]
+        -_lock: Lock
+        +controller: ClientController
+        +panel_id: str
+        +is_registered: bool
+        +start(): void
+        +stop(): void
+        +register_connection(session_id): void
+        +unregister_connection(): void
+        +request_process_start(processes, timeout): void
+        +request_process_stop(processes, force, timeout): void
+        +request_connection_info(): void
+        +notify_restart_ready(): void
+        -_register_handlers(): void
+        -_on_register_response(data): void
+        -_on_unregister_response(data): void
+        -_on_start_response(data): void
+        -_on_stop_response(data): void
+        -_on_restart_notify(data): void
+        -_on_restart_done(data): void
+        -_on_shutdown_notify(data): void
+        -_on_connection_info_response(data): void
+        -_wait_for_response(request_id, timeout): void
+        -_handle_timeout(request_id, msg): void
+    }
+
+    ProcessHubServer --> ProcessExecutor : uses
+    ProcessHubServer --> "TransportBase" : uses
+    ProcessHubServer --> "ProcessHubCore" : delegates to
+    ProcessHubServer --> "HubView" : renders to
+    ProcessHubServer --> Topics : uses
+
+    ProcessHubClient --> "TransportBase" : uses
+    ProcessHubClient --> ClientController : has
+    ProcessHubClient --> Topics : uses
+
+    note right of ProcessHubServer
+      **Thin Runtime Wrapper**
+      - Wires transport to core
+      - Handles message serialization
+      - Runs main loop (tick + render)
+      - Manages signal handlers
+    end note
+
+    note right of ProcessHubClient
+      **Client Features**
+      - Async message handling
+      - Timeout support
+      - Callback-based event system
+      - Request/response correlation
+    end note
+
+    note bottom of ClientController
+      **Event Types:**
+      - connection_registered
+      - connection_unregistered
+      - process_started
+      - process_stopped
+      - process_killed
+      - process_restarted
+      - restart_failed
+      - connection_info
+      - server_timeout
+      - server_shutdown
+    end note
+}
+
+@enduml

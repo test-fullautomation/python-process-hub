@@ -1,0 +1,160 @@
+@startuml class_process
+!theme plain
+title Process Hub - Process & Logging Module Classes
+
+skinparam class {
+    BackgroundColor<<abstract>> #CCCCFF
+    BackgroundColor<<enum>> #FFFFCC
+    BackgroundColor<<dataclass>> #CCFFCC
+}
+
+package "process.executor" {
+
+    interface ProcessExecutor {
+        +start(name, config): tuple[bool, str, Optional[int]]
+        +stop(name, force): bool
+        +is_running(name): bool
+    }
+
+    class SimpleExecutor {
+        -_processes: dict[str, subprocess.Popen]
+        -_configs: dict[str, dict]
+        +start(name, config): tuple[bool, str, Optional[int]]
+        +stop(name, force): bool
+        +is_running(name): bool
+        +get_pid(name): Optional[int]
+        -_build_command(config): list[str]
+    }
+
+    class MockExecutor {
+        -_running: dict[str, int]
+        -_next_pid: int
+        +start(name, config): tuple[bool, str, Optional[int]]
+        +stop(name, force): bool
+        +is_running(name): bool
+        +kill(name): void
+        +get_all_running(): list[str]
+    }
+
+    SimpleExecutor ..|> ProcessExecutor
+    MockExecutor ..|> ProcessExecutor
+}
+
+package "process.platform" {
+
+    abstract class PlatformExecutor <<abstract>> {
+        {abstract} +start(name, config): tuple[bool, str, Optional[int]]
+        {abstract} +stop(name, force): bool
+        {abstract} +is_running(name): bool
+        {abstract} +send_signal(name, signal): bool
+    }
+
+    class WindowsExecutor {
+        -_processes: dict[str, subprocess.Popen]
+        +start(name, config): tuple[bool, str, Optional[int]]
+        +stop(name, force): bool
+        +is_running(name): bool
+        +send_signal(name, signal): bool
+        -_terminate_process_tree(pid): void
+    }
+
+    class UnixExecutor {
+        -_processes: dict[str, subprocess.Popen]
+        +start(name, config): tuple[bool, str, Optional[int]]
+        +stop(name, force): bool
+        +is_running(name): bool
+        +send_signal(name, signal): bool
+        -_send_posix_signal(pid, sig): bool
+    }
+
+    WindowsExecutor --|> PlatformExecutor
+    UnixExecutor --|> PlatformExecutor
+}
+
+package "process.manager" {
+
+    class ProcessManager {
+        -_executor: ProcessExecutor
+        -_registry: ProcessRegistry
+        -_configs: dict[str, dict]
+        +start_process(name, requester): tuple[bool, str]
+        +stop_process(name, requester, force): bool
+        +restart_process(name): tuple[bool, str]
+        +get_process_info(name): Optional[ProcessInfo]
+        +get_all_processes(): dict[str, ProcessInfo]
+        +is_process_running(name): bool
+    }
+
+    ProcessManager --> ProcessExecutor : uses
+    ProcessManager --> "ProcessRegistry" : uses
+}
+
+package "logging.integration" {
+
+    enum LoggingServerType <<enum>> {
+        FLUENTBIT
+        TELEGRAF
+        CUSTOM
+    }
+
+    class LoggingConfig <<dataclass>> {
+        +enabled: bool
+        +config_dir: Optional[str]
+        +host: Optional[str]
+        +port: Optional[int]
+        +extra_args: dict
+        +to_command_args(taf_path): list[str]
+        +to_dict(): dict
+    }
+
+    class MockLoggingServer {
+        -_uuid: int
+        -_base_port: int
+        -_hot_dir: str
+        -_allocated_count: int
+        +hot_cfg_dir: str
+        +allocate(count): tuple[str, list[int]]
+        +deallocate(): void
+    }
+
+    class LoggingIntegration {
+        -_server_type: LoggingServerType
+        -_paths: dict
+        -_taf_path: Optional[str]
+        -_server_factory: Optional[Callable]
+        -_server: Any
+        -_uuid: int
+        +is_started: bool
+        +server: Any
+        +start(): void
+        +stop(): void
+        +get_process_logging_config(name, config): LoggingConfig
+        +enhance_process_config(name, config): dict
+    }
+
+    class LoggingAwareExecutor {
+        -_executor: ProcessExecutor
+        -_logging_integration: LoggingIntegration
+        -_process_configs: dict
+        +start(name, config): tuple[bool, str, Optional[int]]
+        +stop(name, force): bool
+        +is_running(name): bool
+    }
+
+    LoggingAwareExecutor ..|> ProcessExecutor
+    LoggingAwareExecutor --> ProcessExecutor : wraps
+    LoggingAwareExecutor --> LoggingIntegration : uses
+
+    LoggingIntegration --> LoggingServerType : uses
+    LoggingIntegration --> LoggingConfig : creates
+    LoggingIntegration --> MockLoggingServer : can use
+}
+
+note bottom of LoggingAwareExecutor
+  Decorator pattern:
+  Wraps any ProcessExecutor
+  to add logging configuration
+  to process startup
+end note
+
+@enduml

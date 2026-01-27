@@ -1,0 +1,51 @@
+% **************************************************************************************************************
+%
+%  Copyright 2020-2026 Robert Bosch GmbH
+%
+%  Licensed under the Apache License, Version 2.0 (the "License");
+%  you may not use this file except in compliance with the License.
+%  You may obtain a copy of the License at
+%
+%      http://www.apache.org/licenses/LICENSE-2.0
+%
+%  Unless required by applicable law or agreed to in writing, software
+%  distributed under the License is distributed on an "AS IS" BASIS,
+%  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%  See the License for the specific language governing permissions and
+%  limitations under the License.
+%
+% **************************************************************************************************************
+
+\section{Glossary}
+
+\begin{description}
+
+\item[Broker] A ZMQ component that routes messages between publishers and subscribers using XPUB/XSUB sockets.
+
+\item[Client] A ProcessHubClient instance that connects to a ProcessHubServer to request process operations.
+
+\item[Core] The ProcessHubCore component containing pure business logic without I/O dependencies.
+
+\item[Executor] A component responsible for starting and stopping processes on the operating system.
+
+\item[Panel] A unique identifier for a client connection, used to track which clients need which processes.
+
+\item[Process] An operating system process managed by ProcessHub.
+
+\item[Registry] The ProcessRegistry component that maintains the state of all managed processes.
+
+\item[Requester] A panel that has requested a specific process to be running.
+
+\item[Session] A grouping of related panels that share process dependencies.
+
+\item[Snapshot] An immutable copy of the hub state used for thread-safe UI rendering.
+
+\item[Topic] A message category used for ZMQ PUB/SUB message routing.
+
+\item[Transport] An abstraction layer for message passing between server and clients.
+
+\item[View] A UI component that renders the hub state (ConsoleView, NullView).
+
+\item[ZMQ] ZeroMQ, a high-performance asynchronous messaging library.
+
+\end{description}

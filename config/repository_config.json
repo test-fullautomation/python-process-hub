@@ -1,0 +1,19 @@
+{
+   "REPOSITORYNAME" : "python-process-hub",
+   "PACKAGENAME" : "ProcessHub",
+   "AUTHOR" : "Nguyen Huynh Tri Cuong",
+   "AUTHOREMAIL" : "Cuong.NguyenHuynhTri@vn.bosch.com",
+   "DESCRIPTION" : "Process lifecycle management hub with ZMQ-based coordination",
+   "LONGDESCRIPTIONCONTENTTYPE" : "text/markdown",
+   "URL" : "https://github.com/test-fullautomation/python-process-hub/python-process-hub",
+   "PROGRAMMINGLANGUAGE" : "Programming Language :: Python :: 3",
+   "LICENCE" : "License :: OSI Approved :: Apache Software License",
+   "OPERATINGSYSTEM" : "Operating System :: OS Independent",
+   "PYTHONREQUIRES" : ">=3.10",
+   "DEVELOPMENTSTATUS" : "Development Status :: 4 - Beta",
+   "INTENDEDAUDIENCE" : "Intended Audience :: Developers",
+   "TOPIC" : "Topic :: System :: Distributed Computing",
+   "INSTALLREQUIRES" : ["psutil>=5.9.0"],
+   "PACKAGEDATA" : ["*.pdf"],
+   "PACKAGEDOC" : "./packagedoc"
+}

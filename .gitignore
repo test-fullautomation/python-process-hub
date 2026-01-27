@@ -1,0 +1,10 @@
+*.idea
+*.pytest_cache
+*.git
+*.pyc
+/dist/
+/build/
+/__pycache__/
+/*.egg-info
+/*.egg
+/packagedoc/build/

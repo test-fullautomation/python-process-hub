@@ -1,0 +1,24 @@
+# ProcessHub Development Requirements
+# Install: pip install -r requirements-dev.txt
+
+# Core
+psutil>=5.9.0
+
+# ZMQ Transport
+pyzmq>=25.0.0
+
+# Web Dashboard
+fastapi>=0.100.0
+uvicorn>=0.20.0
+
+# Testing
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.0.0
+
+# Code Quality
+mypy>=1.0.0
+ruff>=0.1.0
+
+# Console Colors
+colorama>=0.4.0

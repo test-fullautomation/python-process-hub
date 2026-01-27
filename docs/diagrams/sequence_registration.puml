@@ -1,0 +1,59 @@
+@startuml sequence_registration
+!theme plain
+title Client Registration Sequence
+
+participant "ProcessHubClient" as client
+participant "ZmqTransport" as transport
+participant "ZmqBroker" as broker
+participant "ProcessHubServer" as server
+participant "ProcessHubCore" as core
+
+== Client Registration ==
+
+client -> client : start()
+activate client
+
+client -> transport : start()
+activate transport
+transport -> broker : connect(XPUB, XSUB)
+transport --> client : ready
+deactivate transport
+
+client -> transport : send(REGISTER_REQUEST)
+activate transport
+transport -> broker : publish(topic, data)
+broker -> server : deliver(topic, data)
+deactivate transport
+
+activate server
+server -> core : handle_register(request)
+activate core
+
+core -> core : validate panel_id
+core -> core : create ConnectionInfo
+core -> core : find/create session
+core -> core : add to connections dict
+
+core --> server : [OutgoingMessage]
+deactivate core
+
+server -> transport : send(REGISTER_RESPONSE)
+activate transport
+transport -> broker : publish(topic, data)
+broker -> client : deliver(topic, data)
+deactivate transport
+deactivate server
+
+client -> client : _on_register_response()
+client -> client : controller.emit("connection_registered")
+
+deactivate client
+
+note over client, core
+  Registration includes:
+  - panel_id: unique client identifier
+  - session_id: shared session for multiple panels
+  - Session panels can share processes
+end note
+
+@enduml

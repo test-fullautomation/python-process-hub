@@ -1,0 +1,59 @@
+@startuml state_restart
+!theme plain
+title Restart State Machine (Improvement 3.3)
+
+skinparam state {
+    BackgroundColor<<idle>> #E8FDE8
+    BackgroundColor<<active>> #FDE8E8
+    BackgroundColor<<waiting>> #E8E8FD
+    BackgroundColor<<done>> #FDF8E8
+}
+
+[*] --> IDLE
+
+state IDLE <<idle>>
+state NOTIFYING <<active>>
+state AWAITING_ACK <<waiting>>
+state RESTARTING <<active>>
+state DONE <<done>>
+
+IDLE --> NOTIFYING : detect_killed()\n[dead processes found]
+NOTIFYING --> AWAITING_ACK : notifications_sent()
+AWAITING_ACK --> RESTARTING : begin_restart()\n[all panels acknowledged]
+AWAITING_ACK --> RESTARTING : check_timeout()\n[timeout exceeded]
+RESTARTING --> DONE : restart_completed()
+DONE --> IDLE : reset_to_idle()
+
+IDLE : Normal operation
+IDLE : Health check active
+
+NOTIFYING : Dead process detected
+NOTIFYING : Preparing notifications
+
+AWAITING_ACK : Notifications sent
+AWAITING_ACK : Waiting for all panels
+AWAITING_ACK : to acknowledge
+
+RESTARTING : All panels ready
+RESTARTING : Restarting processes
+
+DONE : Restart complete
+DONE : Notifying panels
+
+note right of AWAITING_ACK
+  **Timeout Handling:**
+  If panels don't acknowledge
+  within timeout period,
+  restart proceeds anyway
+end note
+
+note bottom of IDLE
+  **RestartContext tracks:**
+  - killed_processes
+  - notified_panels
+  - pending_panels
+  - started_at timestamp
+  - retry_count
+end note
+
+@enduml

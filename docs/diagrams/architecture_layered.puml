@@ -1,0 +1,164 @@
+@startuml ProcessHub Layered Architecture
+!theme plain
+skinparam defaultTextAlignment center
+
+title ProcessHub - Layered Architecture & Data Flow
+
+' ============================================================================
+' Layers (Top to Bottom)
+' ============================================================================
+
+rectangle "**External Actors**" as Actors #e0e0e0 {
+    actor "Panel\nApplication" as Panel
+    actor "Admin\nUser" as Admin
+    actor "Browser" as Browser
+}
+
+rectangle "**Client Runtime Layer**" as ClientLayer #e3f2fd {
+    rectangle "ProcessHubClient" as Client {
+        card "register()" as RegMethod
+        card "request_processes()" as ReqMethod
+        card "on_restart_notify()" as NotifyMethod
+        card "acknowledge_restart()" as AckMethod
+    }
+}
+
+rectangle "**Transport Layer**" as TransportLayer #fff3e0 {
+    rectangle "ZmqTransport / InMemoryTransport" as Transport {
+        card "PUB/SUB\n(State Updates)" as PubSub
+        card "REQ/REP\n(Commands)" as ReqRep
+        card "Topics:\npanel.*, server.*" as Topics
+    }
+}
+
+rectangle "**Server Runtime Layer**" as ServerLayer #e8f5e9 {
+    rectangle "ProcessHubServer" as Server {
+        card "Main Loop" as MainLoop
+        card "Health Check" as HealthCheck
+        card "Message Router" as Router
+    }
+}
+
+rectangle "**Core Logic Layer**" as CoreLayer #c8e6c9 {
+    rectangle "ProcessHubCore" as Core {
+        rectangle "Connection Registry" as ConnReg {
+            card "add_connection()" as AddConn
+            card "remove_connection()" as RemConn
+            card "get_panels_for_process()" as GetPanels
+        }
+        rectangle "Process Registry" as ProcReg {
+            card "register_process()" as RegProc
+            card "update_state()" as UpdateState
+            card "add_requester()" as AddReq
+        }
+        rectangle "Restart State Machine" as RestartSM {
+            card "IDLE → DETECTING" as SM1
+            card "→ NOTIFYING" as SM2
+            card "→ AWAITING_ACK" as SM3
+            card "→ RESTARTING" as SM4
+            card "→ DONE → IDLE" as SM5
+        }
+    }
+}
+
+rectangle "**Process Execution Layer**" as ExecLayer #fce4ec {
+    rectangle "ProcessExecutor" as Executor {
+        card "SimpleExecutor\n(Cross-platform)" as SimpleExec
+        card "WindowsExecutor\n(Windows-specific)" as WinExec
+        card "MockExecutor\n(Testing)" as MockExec
+    }
+    rectangle "LoggingAwareExecutor" as LogExec {
+        card "Inject logging config" as InjectLog
+    }
+}
+
+rectangle "**UI / View Layer**" as UILayer #f3e5f5 {
+    rectangle "Views" as Views {
+        card "WebView\n(FastAPI + Dashboard)" as WebView
+        card "ConsoleView\n(ASCII TUI)" as ConsoleView
+        card "NullView\n(Headless)" as NullView
+    }
+    rectangle "WebView Details" as WebDetails {
+        card "GET /api/state" as ApiState
+        card "POST /api/admin/*" as ApiAdmin
+        card "Static Dashboard" as Dashboard
+    }
+}
+
+rectangle "**External Systems**" as ExternalLayer #f5f5f5 {
+    database "process_config.json" as Config
+    rectangle "Managed Processes" as Procs {
+        card "worker_1" as W1
+        card "worker_2" as W2
+        card "..." as WN
+    }
+    rectangle "Logging Server" as LogServer {
+        card "FluentBit" as FB
+        card "Telegraf" as TG
+    }
+}
+
+' ============================================================================
+' Relationships
+' ============================================================================
+
+Panel --> Client
+Admin --> WebView
+Browser --> WebView
+
+Client --> Transport : messages
+Transport --> Server : messages
+
+Server --> Core : delegate logic
+Server --> Views : push state
+
+Core --> Executor : start/stop
+LogExec --> Executor : wraps
+LogExec --> LogServer : configure
+
+Executor --> Procs : manage
+
+Config --> Server : load
+
+WebDetails --> Server : admin commands
+
+' ============================================================================
+' Data Flow Notes
+' ============================================================================
+
+note right of Transport
+    **Message Types:**
+    • panel.register
+    • panel.unregister
+    • panel.request
+    • server.restart_notify
+    • server.restart_complete
+    • server.state_update
+end note
+
+note right of RestartSM
+    **Restart Coordination:**
+    1. Detect dead process
+    2. Notify all affected panels
+    3. Wait for acknowledgments
+    4. Restart process
+    5. Notify completion
+end note
+
+note right of Executor
+    **Process States:**
+    REGISTERED → STARTING
+    → RUNNING → STOPPING
+    → STOPPED
+
+    RUNNING → DEAD/FAILED
+end note
+
+note bottom of WebDetails
+    **Admin API:**
+    • Start/Stop processes
+    • Add/Edit/Remove configs
+    • View real-time status
+end note
+
+@enduml

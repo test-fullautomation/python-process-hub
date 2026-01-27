@@ -1,0 +1,74 @@
+@startuml sequence_process_start
+!theme plain
+title Process Start Sequence
+
+participant "ProcessHubClient" as client
+participant "ZmqTransport" as transport
+participant "ProcessHubServer" as server
+participant "ProcessHubCore" as core
+participant "ProcessRegistry" as registry
+participant "ProcessExecutor" as executor
+participant "Process" as process
+
+== Process Start Request ==
+
+client -> transport : send(START_REQUEST, {process_list})
+activate transport
+transport -> server : deliver
+deactivate transport
+
+activate server
+server -> server : _on_start_request()
+server -> core : handle_start_request(request)
+activate core
+
+loop for each process in process_list
+    core -> registry : get(process_name)
+    activate registry
+
+    alt process already running
+        registry --> core : ProcessInfo (RUNNING)
+        core -> registry : register(name, panel_id)
+        note right: Add requester to existing process
+    else process not running
+        registry --> core : None
+        deactivate registry
+
+        core -> server : process_starter(name)
+        activate server
+        server -> executor : start(name, config)
+        activate executor
+        executor -> process : spawn
+        activate process
+        process --> executor : pid
+        executor --> server : (success, msg, pid)
+        deactivate executor
+        server --> core : (success, msg, pid)
+        deactivate server
+
+        alt start successful
+            core -> registry : register(name, panel_id, pid)
+            core -> registry : update_state(name, RUNNING)
+        else start failed
+            core -> core : rollback started processes
+        end
+    end
+end
+
+core --> server : [OutgoingMessage]
+deactivate core
+
+server -> transport : send(START_RESPONSE)
+transport -> client : deliver
+
+deactivate server
+deactivate process
+
+note over core, registry
+  **Reference Counting:**
+  - Multiple panels can request same process
+  - Process keeps running if any requester exists
+  - Only stops when all requesters release
+end note
+
+@enduml

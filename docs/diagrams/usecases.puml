@@ -1,0 +1,217 @@
+@startuml ProcessHub Use Cases
+!theme plain
+skinparam actorStyle awesome
+skinparam packageStyle rectangle
+skinparam usecaseBackgroundColor #f5f5f5
+skinparam usecaseBorderColor #333333
+skinparam actorBackgroundColor #e1f5fe
+skinparam rectangleBackgroundColor #fff3e0
+
+title ProcessHub Library - Use Cases Diagram
+
+' ============================================================================
+' Actors
+' ============================================================================
+
+actor "Panel/Client" as Client #lightblue
+actor "Admin User" as Admin #orange
+actor "Browser User" as Browser #lightyellow
+
+rectangle "ProcessHub System" as System #white {
+    actor "Server" as Server <<system>> #lightgreen
+    actor "Process Executor" as Executor <<system>> #lightgreen
+    actor "Restart State Machine" as RestartMachine <<system>> #lightgreen
+}
+
+' ============================================================================
+' Use Cases - Client Operations
+' ============================================================================
+
+package "Client Operations" as ClientOps #e3f2fd {
+    usecase "Register Connection" as UC_Register
+    usecase "Request Process Start" as UC_RequestStart
+    usecase "Request Process Stop" as UC_RequestStop
+    usecase "Receive Restart\nNotification" as UC_ReceiveNotify
+    usecase "Acknowledge Restart\nReadiness" as UC_AckRestart
+    usecase "Resume After Restart" as UC_Resume
+}
+
+' ============================================================================
+' Use Cases - Process Management
+' ============================================================================
+
+package "Process Management" as ProcessMgmt #e8f5e9 {
+    usecase "Start Process" as UC_Start
+    usecase "Stop Process\n(Graceful)" as UC_Stop
+    usecase "Kill Process\n(Force)" as UC_Kill
+    usecase "Monitor Process\nHealth" as UC_Monitor
+    usecase "Track Process State" as UC_TrackState
+    usecase "Reference Counting\n(Shared Ownership)" as UC_RefCount
+}
+
+' ============================================================================
+' Use Cases - Restart Coordination
+' ============================================================================
+
+package "Restart Coordination" as RestartCoord #fff3e0 {
+    usecase "Detect Dead Process" as UC_DetectDead
+    usecase "Notify Affected\nClients" as UC_NotifyClients
+    usecase "Wait for Client\nAcknowledgments" as UC_WaitAck
+    usecase "Coordinate Restart" as UC_CoordRestart
+    usecase "Handle Timeout" as UC_HandleTimeout
+}
+
+' ============================================================================
+' Use Cases - Admin Operations
+' ============================================================================
+
+package "Admin Operations" as AdminOps #ffebee {
+    usecase "Start Process\nvia Dashboard" as UC_AdminStart
+    usecase "Stop/Kill Process\nvia Dashboard" as UC_AdminStop
+    usecase "Add Process\nConfiguration" as UC_AddConfig
+    usecase "Edit Process\nConfiguration" as UC_EditConfig
+    usecase "Remove Process\nConfiguration" as UC_RemoveConfig
+    usecase "View Available\nProcesses" as UC_ViewProcesses
+}
+
+' ============================================================================
+' Use Cases - Monitoring
+' ============================================================================
+
+package "Monitoring" as Monitoring #f3e5f5 {
+    usecase "View Dashboard" as UC_ViewDashboard
+    usecase "View Connections" as UC_ViewConnections
+    usecase "View Process Status" as UC_ViewStatus
+    usecase "View Restart Progress" as UC_ViewRestart
+    usecase "View Console Logs" as UC_ViewLogs
+    usecase "Download Logs" as UC_DownloadLogs
+}
+
+' ============================================================================
+' Use Cases - Configuration
+' ============================================================================
+
+package "Configuration" as Config #fce4ec {
+    usecase "Load Config from JSON" as UC_LoadConfig
+    usecase "Expand Environment\nVariables" as UC_ExpandEnv
+    usecase "Validate Configuration" as UC_ValidateConfig
+}
+
+' ============================================================================
+' Relationships - Client
+' ============================================================================
+
+Client --> UC_Register
+Client --> UC_RequestStart
+Client --> UC_RequestStop
+Client --> UC_ReceiveNotify
+Client --> UC_AckRestart
+Client --> UC_Resume
+
+' ============================================================================
+' Relationships - Admin
+' ============================================================================
+
+Admin --> UC_AdminStart
+Admin --> UC_AdminStop
+Admin --> UC_AddConfig
+Admin --> UC_EditConfig
+Admin --> UC_RemoveConfig
+Admin --> UC_ViewProcesses
+
+' ============================================================================
+' Relationships - Browser User
+' ============================================================================
+
+Browser --> UC_ViewDashboard
+Browser --> UC_ViewConnections
+Browser --> UC_ViewStatus
+Browser --> UC_ViewRestart
+Browser --> UC_ViewLogs
+Browser --> UC_DownloadLogs
+
+' ============================================================================
+' Relationships - Server
+' ============================================================================
+
+Server --> UC_Start
+Server --> UC_Stop
+Server --> UC_Kill
+Server --> UC_Monitor
+Server --> UC_TrackState
+Server --> UC_RefCount
+
+' ============================================================================
+' Relationships - Executor
+' ============================================================================
+
+Executor --> UC_Start
+Executor --> UC_Stop
+Executor --> UC_Kill
+Executor --> UC_Monitor
+
+' ============================================================================
+' Relationships - Restart State Machine
+' ============================================================================
+
+RestartMachine --> UC_DetectDead
+RestartMachine --> UC_NotifyClients
+RestartMachine --> UC_WaitAck
+RestartMachine --> UC_CoordRestart
+RestartMachine --> UC_HandleTimeout
+
+' ============================================================================
+' Include/Extend Relationships
+' ============================================================================
+
+UC_RequestStart ..> UC_Start : <<include>>
+UC_RequestStop ..> UC_Stop : <<include>>
+UC_AdminStart ..> UC_Start : <<include>>
+UC_AdminStop ..> UC_Stop : <<include>>
+UC_AdminStop ..> UC_Kill : <<include>>
+
+UC_DetectDead ..> UC_Monitor : <<include>>
+UC_CoordRestart ..> UC_Start : <<include>>
+
+UC_Start ..> UC_LoadConfig : <<include>>
+UC_LoadConfig ..> UC_ExpandEnv : <<include>>
+UC_LoadConfig ..> UC_ValidateConfig : <<include>>
+
+UC_AddConfig ..> UC_ValidateConfig : <<include>>
+UC_EditConfig ..> UC_ValidateConfig : <<include>>
+
+UC_WaitAck ..> UC_HandleTimeout : <<extend>>
+
+' ============================================================================
+' Notes
+' ============================================================================
+
+note right of Client
+  **Panel/Client**
+  - Identified by panel_id
+  - Grouped by session_id
+  - Can request multiple processes
+end note
+
+note right of Admin
+  **Admin User**
+  - Access via Web Dashboard
+  - Direct process control
+  - Configuration management
+end note
+
+note bottom of RestartCoord
+  **Restart Flow:**
+  IDLE -> DETECTING -> NOTIFYING
+  -> AWAITING_ACK -> RESTARTING
+  -> DONE -> IDLE
+end note
+
+note bottom of ProcessMgmt
+  **Process States:**
+  REGISTERED -> STARTING -> RUNNING
+  RUNNING -> STOPPING -> STOPPED
+  RUNNING -> DEAD/FAILED
+end note
+
+@enduml

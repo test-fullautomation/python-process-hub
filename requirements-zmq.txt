@@ -1,0 +1,8 @@
+# ProcessHub ZMQ Transport Requirements
+# Install: pip install -r requirements-zmq.txt
+
+# Core
+psutil>=5.9.0
+
+# ZMQ Transport
+pyzmq>=25.0.0

@@ -1,0 +1,136 @@
+@startuml component
+!theme plain
+title Process Hub - Component Diagram
+
+top to bottom direction
+
+skinparam component {
+    BackgroundColor<<core>> #E8F4FD
+    BackgroundColor<<runtime>> #FDF4E8
+    BackgroundColor<<transport>> #E8FDF4
+    BackgroundColor<<process>> #FDE8F4
+    BackgroundColor<<config>> #F4E8FD
+    BackgroundColor<<logging>> #F4FDE8
+    BackgroundColor<<ui>> #E8E8FD
+}
+
+package "process_hub" {
+
+    package "runtime" <<runtime>> {
+        component [ProcessHubServer] as server
+        component [ProcessHubClient] as client
+        component [ClientController] as controller
+
+        note bottom of server
+          Thin wrapper
+          Transport wiring
+          Main loop
+        end note
+    }
+
+    package "core" <<core>> {
+        component [ProcessHubCore] as core_hub
+        component [ProcessRegistry] as registry
+        component [RestartStateMachine] as restart_fsm
+        component [models] as models
+
+        note bottom of core_hub
+          Business logic
+          Message handling
+          Health monitoring
+        end note
+    }
+
+    package "transport" <<transport>> {
+        interface "TransportBase" as transport_base
+        component [ZmqTransport] as zmq
+        component [ZmqBroker] as broker
+        component [ZmqAsyncClient] as zmq_client
+        component [InMemoryTransport] as inmem
+
+        zmq ..|> transport_base
+        inmem ..|> transport_base
+        zmq --> broker : uses
+        zmq --> zmq_client : uses
+    }
+
+    package "process" <<process>> {
+        interface "ProcessExecutor" as executor_if
+        component [SimpleExecutor] as simple_exec
+        component [MockExecutor] as mock_exec
+        component [ProcessManager] as proc_mgr
+        component [PlatformExecutor] as platform_exec
+
+        simple_exec ..|> executor_if
+        mock_exec ..|> executor_if
+
+        package "platform" {
+            component [WindowsExecutor] as win_exec
+            component [UnixExecutor] as unix_exec
+        }
+
+        win_exec --|> platform_exec
+        unix_exec --|> platform_exec
+    }
+
+    package "config" <<config>> {
+        component [ConfigLoader] as config_loader
+        component [schemas] as schemas
+
+        config_loader --> schemas : validates
+    }
+
+    package "logging" <<logging>> {
+        component [LoggingIntegration] as log_int
+        component [LoggingAwareExecutor] as log_exec
+        component [MockLoggingServer] as mock_log
+
+        log_exec --> executor_if : wraps
+        log_int --> mock_log : can use
+    }
+
+    package "ui" <<ui>> {
+        interface "HubView" as view_if
+        component [ConsoleView] as console
+        component [WebView] as webview
+        component [NullView] as null_view
+
+        console ..|> view_if
+        webview ..|> view_if
+        null_view ..|> view_if
+
+        note bottom of webview
+          FastAPI dashboard
+          REST API
+          Console logs
+        end note
+    }
+}
+
+' Vertical layout hints
+runtime -[hidden]down- core
+core -[hidden]down- transport
+core -[hidden]down- process
+core -[hidden]down- ui
+transport -[hidden]down- config
+process -[hidden]down- logging
+
+' Dependencies between packages
+server --> core_hub : delegates to
+server --> transport_base : uses
+server --> executor_if : uses
+server --> view_if : renders to
+
+client --> transport_base : uses
+client --> controller : dispatches to
+
+core_hub --> registry : manages
+core_hub --> restart_fsm : coordinates
+core_hub --> models : uses
+
+proc_mgr --> executor_if : uses
+proc_mgr --> registry : tracks
+
+log_int --> log_exec : provides
+
+@enduml

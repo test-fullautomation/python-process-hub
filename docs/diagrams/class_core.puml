@@ -1,0 +1,189 @@
+@startuml class_core
+!theme plain
+title Process Hub - Core Module Classes
+
+skinparam class {
+    BackgroundColor<<enum>> #FFFFCC
+    BackgroundColor<<dataclass>> #CCFFCC
+    BackgroundColor<<protocol>> #CCCCFF
+}
+
+package "core.models" {
+
+    enum ProcessState <<enum>> {
+        REGISTERED
+        STARTING
+        RUNNING
+        STOPPING
+        STOPPED
+        DEAD
+        FAILED
+    }
+
+    enum MessageType <<enum>> {
+        REGISTER_RESPONSE
+        UNREGISTER_RESPONSE
+        CONNECTION_INFO_RESPONSE
+        START_RESPONSE
+        STOP_RESPONSE
+        RESTART_NOTIFY
+        RESTART_DONE
+        SHUTDOWN_NOTIFY
+    }
+
+    class ProcessInfo <<dataclass>> {
+        +name: str
+        +state: ProcessState
+        +pid: Optional[int]
+        +requesters: frozenset[str]
+        +started_at: Optional[float]
+        +config: dict
+    }
+
+    class ConnectionInfo <<dataclass>> {
+        +panel_id: str
+        +session_id: str
+        +connected_at: float
+        +session_panel_ids: frozenset[str]
+    }
+
+    class HubStateSnapshot <<dataclass>> {
+        +connections: tuple[ConnectionInfo]
+        +processes: tuple[ProcessInfo]
+        +restart_state: str
+        +killed_processes: tuple[str]
+    }
+
+    abstract class MessageBase <<dataclass>> {
+        +panel_id: str
+    }
+
+    class RegisterConnectionRequest <<dataclass>> {
+        +panel_id: str
+        +session_id: str
+    }
+
+    class ProcessStartRequest <<dataclass>> {
+        +panel_id: str
+        +process_list: list[str]
+        +timeout_per_process: float
+    }
+
+    class ProcessRestartNotify <<dataclass>> {
+        +panel_id: str
+        +killed_processes: list[str]
+    }
+
+    class ServerShutdownNotify <<dataclass>> {
+        +panel_id: str
+        +reason: str
+        +message: str
+    }
+
+    RegisterConnectionRequest --|> MessageBase
+    ProcessStartRequest --|> MessageBase
+    ProcessRestartNotify --|> MessageBase
+    ServerShutdownNotify --|> MessageBase
+}
+
+package "core.process_registry" {
+
+    class ProcessRegistry {
+        -_processes: dict[str, ProcessInfo]
+        -_lock: threading.Lock
+        +register(name, requester, pid, config): ProcessInfo
+        +unregister(name, requester): bool
+        +get(name): Optional[ProcessInfo]
+        +get_snapshot(): dict[str, ProcessInfo]
+        +get_active_processes(): list[str]
+        +update_state(name, state): void
+        +mark_dead(names): void
+        +get_requesters(name): set[str]
+        +remove_requester_from_all(requester): list[str]
+        +__len__(): int
+    }
+
+    ProcessRegistry --> ProcessInfo : manages
+    ProcessRegistry --> ProcessState : uses
+}
+
+package "core.restart_state" {
+
+    enum RestartState <<enum>> {
+        IDLE
+        DETECTING
+        NOTIFYING
+        AWAITING_ACK
+        RESTARTING
+        DONE
+        FAILED
+    }
+
+    class RestartContext <<dataclass>> {
+        +state: RestartState
+        +killed_processes: set[str]
+        +notified_panels: set[str]
+        +pending_panels: set[str]
+        +started_at: Optional[float]
+        +retry_count: int
+        +is_timed_out(timeout): bool
+        +can_retry(max_retries): bool
+        +reset(): void
+    }
+
+    class RestartStateMachine {
+        -_context: RestartContext
+        -_lock: threading.Lock
+        +state: RestartState
+        +detect_killed(processes, panels): bool
+        +notifications_sent(): void
+        +panel_acknowledged(panel_id): str
+        +begin_restart(): bool
+        +restart_completed(success): void
+        +reset_to_idle(): void
+        +check_timeout(timeout): bool
+        +get_snapshot(): dict
+    }
+
+    RestartStateMachine --> RestartContext : manages
+    RestartStateMachine --> RestartState : uses
+}
+
+package "core.hub_core" {
+
+    class OutgoingMessage <<dataclass>> {
+        +msg_type: MessageType
+        +payload: MessageBase
+        +target_panel: Optional[str]
+    }
+
+    class ProcessHubCore {
+        -_connections: dict[str, ConnectionInfo]
+        -_sessions: dict[str, set[str]]
+        -_registry: ProcessRegistry
+        -_restart_fsm: RestartStateMachine
+        -_process_starter: Callable
+        -_process_stopper: Callable
+        -_health_checker: Callable
+        -_connection_lock: threading.Lock
+        +handle_register(request): list[OutgoingMessage]
+        +handle_unregister(request): list[OutgoingMessage]
+        +handle_start_request(request): list[OutgoingMessage]
+        +handle_stop_request(request): list[OutgoingMessage]
+        +handle_restart_ready(request): list[OutgoingMessage]
+        +handle_connection_info(request): list[OutgoingMessage]
+        +tick(): list[OutgoingMessage]
+        +get_state_snapshot(): HubStateSnapshot
+        +is_registered(panel_id): bool
+        +reset(): tuple[bool, str, list[OutgoingMessage]]
+        +shutdown(): list[OutgoingMessage]
+    }
+
+    ProcessHubCore --> ProcessRegistry : uses
+    ProcessHubCore --> RestartStateMachine : uses
+    ProcessHubCore --> OutgoingMessage : produces
+    ProcessHubCore --> HubStateSnapshot : creates
+    ProcessHubCore --> ConnectionInfo : manages
+}
+
+@enduml

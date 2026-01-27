@@ -1,0 +1,154 @@
+2026-01-22 18:18:41,872 [MainThread] [INFO ]  Create event bus successfully from configurations:
+  plugins_path: ./plugins (default)
+  host: localhost
+  port: 5672
+  serializer: PickleSerializer
+  exchange_handler: TopicExchangeHandler
+  exchange_name: process_hub
+  auto_reconnect: True
+  qos_prefetch: 10
+  logfile: None
+  loglevel: INFO (default)
+  logger_name: event_bus_client
+  logger_mode: a (default)
+  general_cache_policy: off (default)
+  general_routing_keys: general (default)
+  general_message_cls: <class 'EventBusClient.message.basic_message.BasicMessage'> (default)
+
+2026-01-22 18:18:41,874 [MainThread] [INFO ]  Submitting coroutine <coroutine object EventBusClient.connect at 0x0000028FD0443540> to background loop with timeout 30.0
+2026-01-22 18:18:41,874 [MainThread] [INFO ]  caller_thread=MainThread loop_is_same=False
+2026-01-22 18:18:41,874 [MainThread] [INFO ]  Background loop is running, submitting coroutine
+2026-01-22 18:18:41,874 [MainThread] [INFO ]  Waiting for coroutine result
+2026-01-22 18:18:41,887 [MainThread] [INFO ]  Subscribing to routing key 'processhub.REGISTER_CONNECTION_RESPONSE' with message class 'ProcessHubMessage'
+2026-01-22 18:18:41,887 [MainThread] [INFO ]  Submitting coroutine <coroutine object EventBusClient.on at 0x0000028FD0443540> to background loop with timeout 10.0
+2026-01-22 18:18:41,887 [MainThread] [INFO ]  caller_thread=MainThread loop_is_same=False
+2026-01-22 18:18:41,887 [MainThread] [INFO ]  Background loop is running, submitting coroutine
+2026-01-22 18:18:41,887 [MainThread] [INFO ]  Waiting for coroutine result
+2026-01-22 18:18:41,891 [MainThread] [INFO ]  Subscribing to routing key 'processhub.UNREGISTER_CONNECTION_RESPONSE' with message class 'ProcessHubMessage'
+2026-01-22 18:18:41,891 [MainThread] [INFO ]  Submitting coroutine <coroutine object EventBusClient.on at 0x0000028FD0443540> to background loop with timeout 10.0
+2026-01-22 18:18:41,891 [MainThread] [INFO ]  caller_thread=MainThread loop_is_same=False
+2026-01-22 18:18:41,891 [MainThread] [INFO ]  Background loop is running, submitting coroutine
+2026-01-22 18:18:41,891 [MainThread] [INFO ]  Waiting for coroutine result
+2026-01-22 18:18:41,895 [MainThread] [INFO ]  Subscribing to routing key 'processhub.CONNECTION_INFO_RESPONSE' with message class 'ProcessHubMessage'
+2026-01-22 18:18:41,895 [MainThread] [INFO ]  Submitting coroutine <coroutine object EventBusClient.on at 0x0000028FD0443540> to background loop with timeout 10.0
+2026-01-22 18:18:41,895 [MainThread] [INFO ]  caller_thread=MainThread loop_is_same=False
+2026-01-22 18:18:41,895 [MainThread] [INFO ]  Background loop is running, submitting coroutine
+2026-01-22 18:18:41,895 [MainThread] [INFO ]  Waiting for coroutine result
+2026-01-22 18:18:41,898 [MainThread] [INFO ]  Subscribing to routing key 'processhub.PROCESS_START_RESPONSE' with message class 'ProcessHubMessage'
+2026-01-22 18:18:41,898 [MainThread] [INFO ]  Submitting coroutine <coroutine object EventBusClient.on at 0x0000028FD0443540> to background loop with timeout 10.0
+2026-01-22 18:18:41,898 [MainThread] [INFO ]  caller_thread=MainThread loop_is_same=False
+2026-01-22 18:18:41,898 [MainThread] [INFO ]  Background loop is running, submitting coroutine
+2026-01-22 18:18:41,898 [MainThread] [INFO ]  Waiting for coroutine result
+2026-01-22 18:18:41,901 [MainThread] [INFO ]  Subscribing to routing key 'processhub.PROCESS_STOP_RESPONSE' with message class 'ProcessHubMessage'
+2026-01-22 18:18:41,901 [MainThread] [INFO ]  Submitting coroutine <coroutine object EventBusClient.on at 0x0000028FD0443540> to background loop with timeout 10.0
+2026-01-22 18:18:41,901 [MainThread] [INFO ]  caller_thread=MainThread loop_is_same=False
+2026-01-22 18:18:41,901 [MainThread] [INFO ]  Background loop is running, submitting coroutine
+2026-01-22 18:18:41,901 [MainThread] [INFO ]  Waiting for coroutine result
+2026-01-22 18:18:41,904 [MainThread] [INFO ]  Subscribing to routing key 'processhub.PROCESS_RESTART_NOTIFY' with message class 'ProcessHubMessage'
+2026-01-22 18:18:41,904 [MainThread] [INFO ]  Submitting coroutine <coroutine object EventBusClient.on at 0x0000028FD0443540> to background loop with timeout 10.0
+2026-01-22 18:18:41,905 [MainThread] [INFO ]  caller_thread=MainThread loop_is_same=False
+2026-01-22 18:18:41,905 [MainThread] [INFO ]  Background loop is running, submitting coroutine
+2026-01-22 18:18:41,905 [MainThread] [INFO ]  Waiting for coroutine re2026-01-22 18:18:41,919 [ProcessHubEventBus] [INFO ]  [AsyncSubscriber] Received message: ProcessHubMessage({'version': '1.0', 'timestamp': 1769080721.917568, 'request_id': None, 'panel_id': 'eventbus_client_1', 'session_id': 'eventbus_session_1'}) with headers: <aio_pika.message.HeaderProxy object at 0x0000017DF7719550>
+2026-01-22 18:18:41,919 [ProcessHubEventBus] [INFO ]  [AsyncSubscriber] Cache id: 1640533952560. Cache: <EventBusClient.subscription_cache.SubscriptionCache object at 0x0000017DF7718830>
+2026-01-22 18:18:41,919 [ProcessHubEventBus] [INFO ]  [AsyncSubscriber] Caching message: ProcessHubMessage({'version': '1.0', 'timestamp': 1769080721.917568, 'request_id': None, 'panel_id': 'eventbus_client_1', 'session_id': 'eventbus_session_1'}). Cache id: 1640533952560
+2026-01-22 18:18:41,920 [asyncio_0] [INFO ]  Sending message with routing key 'processhub.REGISTER_CONNECTION_RESPONSE': ProcessHubMessage({'version': '1.0', 'timestamp': 1769080721.9202576, 'request_id': None, 'panel_id': 'eventbus_client_1', 'success': True, 'message': 'Registered panel eventbus_client_1'})
+2026-01-22 18:18:41,920 [asyncio_0] [INFO ]  Submitting coroutine <coroutine object EventBusClient.send at 0x0000017DF76CA130> to background loop with timeout 10.0
+2026-01-22 18:18:41,920 [asyncio_0] [INFO ]  caller_thread=asyncio_0 loop_is_same=False
+2026-01-22 18:18:41,920 [asyncio_0] [INFO ]  Background loop is running, submitting coroutine
+2026-01-22 18:18:41,920 [asyncio_0] [INFO ]  Waiting for coroutine result
+2026-01-22 18:18:41,920 [ProcessHubEventBus] [INFO ]  [async def send] Sending message with routing key 'processhub.REGISTER_CONNECTION_RESPONSE': ProcessHubMessage({'version': '1.0', 'timestamp': 1769080721.9202576, 'request_id': None, 'panel_id': 'eventbus_client_1', 'success': True, 'message': 'Registered panel eventbus_client_1'})
+2026-01-22 18:18:41,921 [ProcessHubEventBus] [INFO ]  [async def send] Sent message with routing key 'processhub.REGISTER_CONNECTION_RESPONSE': ProcessHubMessage({'version': '1.0', 'timestamp': 1769080721.9202576, 'request_id': None, 'panel_id': 'eventbus_client_1', 'success': True, 'message': 'Registered panel eventbus_client_1'})
+2026-01-22 18:18:41,924 [ProcessHubEventBus] [INFO ]  [AsyncSubscriber] Received message: ProcessHubMessage({'version': '1.0', 'timestamp': 1769080721.9226375, 'request_id': None, 'panel_id': 'eventbus_client_1', 'process_list': ['worker_1', 'worker_2'], 'timeout_per_process': 20.0}) with headers: <aio_pika.message.HeaderProxy object at 0x0000017DF7CCC190>
+2026-01-22 18:18:41,924 [ProcessHubEventBus] [INFO ]  [AsyncSubscriber] Cache id: 1640533919296. Cache: <EventBusClient.subscription_cache.SubscriptionCache object at 0x0000017DF7710640>
+2026-01-22 18:18:41,924 [ProcessHubEventBus] [INFO ]  [AsyncSubscriber] Caching message: ProcessHubMessage({'version': '1.0', 'timestamp': 1769080721.9226375, 'request_id': None, 'panel_id': 'eventbus_client_1', 'process_list': ['worker_1', 'worker_2'], 'timeout_per_process': 20.0}). Cache id: 1640533919296
+2026-01-22 18:18:43,935 [asyncio_0] [INFO ]  Sending message with routing key 'processhub.PROCESS_START_RESPONSE': ProcessHubMessage({'version': '1.0', 'timestamp': 1769080723.9352767, 'request_id': None, 'panel_id': 'eventbus_client_1', 'success': True, 'failed_processes': [], 'error_message': ''})
+2026-01-22 18:18:43,935 [asyncio_0] [INFO ]  Submitting coroutine <coroutine object EventBusClient.send at 0x0000017DF76CA130> to background loop with timeout 10.0
+2026-01-22 18:18:43,935 [asyncio_0] [INFO ]  caller_thread=asyncio_0 loop_is_same=False
+2026-01-22 18:18:43,935 [asyncio_0] [INFO ]  Background loop is running, submitting coroutine
+2026-01-22 18:18:43,935 [asyncio_0] [INFO ]  Waiting for coroutine result
+2026-01-22 18:18:43,936 [ProcessHubEventBus] [INFO ]  [async def send] Sending message with routing key 'processhub.PROCESS_START_RESPONSE': ProcessHubMessage({'version': '1.0', 'timestamp': 1769080723.9352767, 'request_id': None, 'panel_id': 'eventbus_client_1', 'success': True, 'failed_processes': [], 'error_message': ''})
+2026-01-22 18:18:43,937 [ProcessHubEventBus] [INFO ]  [async def send] Sent message with routing key 'processhub.PROCESS_START_RESPONSE': ProcessHubMessage({'version': '1.0', 'timestamp': 1769080723.9352767, 'request_id': None, 'panel_id': 'eventbus_client_1', 'success': True, 'failed_processes': [], 'error_message': ''})
+2026-01-22 18:18:52,721 [ProcessHubEventBus] [INFO ]  [AsyncSubscriber] Received message: ProcessHubMessage({'version': '1.0', 'timestamp': 1769080732.718627, 'request_id': None, 'panel_id': 'eventbus_client_1', 'process_list': ['worker_1', 'worker_2'], 'force': False}) with headers: <aio_pika.message.HeaderProxy object at 0x0000017DF7711F30>
+2026-01-22 18:18:52,721 [ProcessHubEventBus] [INFO ]  [AsyncSubscriber] Cache id: 1640533920512. Cache: <EventBusClient.subscription_cache.SubscriptionCache object at 0x0000017DF7710B00>
+2026-01-22 18:18:52,721 [ProcessHubEventBus] [INFO ]  [AsyncSubscriber] Caching message: ProcessHubMessage({'version': '1.0', 'timestamp': 1769080732.718627, 'request_id': None, 'panel_id': 'eventbus_client_1', 'process_list': ['worker_1', 'worker_2'], 'force': False}). Cache id: 1640533920512
+2026-01-22 18:18:52,725 [asyncio_0] [INFO ]  Sending message with routing key 'processhub.PROCESS_STOP_RESPONSE': ProcessHubMessage({'version': '1.0', 'timestamp': 1769080732.725783, 'request_id': None, 'panel_id': 'eventbus_client_1', 'success': True, 'message': 'Stop request completed'})
+2026-01-22 18:18:52,725 [asyncio_0] [INFO ]  Submitting coroutine <coroutine object EventBusClient.send at 0x0000017DF76CA350> to background loop with timeout 10.0
+2026-01-22 18:18:52,725 [asyncio_0] [INFO ]  caller_thread=asyncio_0 loop_is_same=False
+2026-01-22 18:18:52,726 [asyncio_0] [INFO ]  Background loop is running, submitting coroutine
+2026-01-22 18:18:52,726 [asyncio_0] [INFO ]  Waiting for coroutine result
+2026-01-22 18:18:52,726 [ProcessHubEventBus] [INFO ]  [async def send] Sending message with routing key 'processhub.PROCESS_STOP_RESPONSE': ProcessHubMessage({'version': '1.0', 'timestamp': 1769080732.725783, 'request_id': None, 'panel_id': 'eventbus_client_1', 'success': True, 'message': 'Stop request completed'})
+2026-01-22 18:18:52,727 [ProcessHubEventBus] [INFO ]  [async def send] Sent message with routing key 'processhub.PROCESS_STOP_RESPONSE': ProcessHubMessage({'version': '1.0', 'timestamp': 1769080732.725783, 'request_id': None, 'panel_id': 'eventbus_client_1', 'success': True, 'message': 'Stop request completed'})
+2026-01-22 18:18:53,737 [ProcessHubEventBus] [INFO ]  [AsyncSubscriber] Received message: ProcessHubMessage({'version': '1.0', 'timestamp': 1769080733.7218902, 'request_id': None, 'panel_id': 'eventbus_client_1'}) with headers: <aio_pika.message.HeaderProxy object at 0x0000017DF76CA140>
+2026-01-22 18:18:53,737 [ProcessHubEventBus] [INFO ]  [AsyncSubscriber] Cache id: 1640533583312. Cache: <EventBusClient.subscription_cache.SubscriptionCache object at 0x0000017DF76BE5D0>
+2026-01-22 18:18:53,738 [ProcessHubEventBus] [INFO ]  [AsyncSubscriber] Caching message: ProcessHubMessage({'version': '1.0', 'timestamp': 1769080733.7218902, 'request_id': None, 'panel_id': 'eventbus_client_1'}). Cache id: 1640533583312
+2026-01-22 18:18:53,738 [asyncio_0] [INFO ]  Sending message with routing key 'processhub.UNREGISTER_CONNECTION_RESPONSE': ProcessHubMessage({'version': '1.0', 'timestamp': 1769080733.738654, 'request_id': None, 'panel_id': 'eventbus_client_1', 'message': 'Unregistered panel eventbus_client_1'})
+2026-01-22 18:18:53,738 [asyncio_0] [INFO ]  Submitting coroutine <coroutine object EventBusClient.send at 0x0000017DF76CA570> to background loop with timeout 10.0
+2026-01-22 18:18:53,738 [asyncio_0] [INFO ]  caller_thread=asyncio_0 loop_is_same=False
+2026-01-22 18:18:53,739 [asyncio_0] [INFO ]  Background loop is running, submitting coroutine
+2026-01-22 18:18:53,739 [asyncio_0] [INFO ]  Waiting for coroutine result
+2026-01-22 18:18:53,739 [ProcessHubEventBus] [INFO ]  [async def send] Sending message with routing key 'processhub.UNREGISTER_CONNECTION_RESPONSE': ProcessHubMessage({'version': '1.0', 'timestamp': 1769080733.738654, 'request_id': None, 'panel_id': 'eventbus_client_1', 'message': 'Unregistered panel eventbus_client_1'})
+2026-01-22 18:18:53,741 [ProcessHubEventBus] [INFO ]  [async def send] Sent message with routing key 'processhub.UNREGISTER_CONNECTION_RESPONSE': ProcessHubMessage({'version': '1.0', 'timestamp': 1769080733.738654, 'request_id': None, 'panel_id': 'eventbus_client_1', 'message': 'Unregistered panel eventbus_client_1'})
+2026-01-22 18:21:04,717 [MainThread] [INFO ]  Submitting coroutine <coroutine object EventBusClient.off at 0x0000017DF7CFE110> to background loop with timeout 5.0
+2026-01-22 18:21:04,718 [MainThread] [INFO ]  caller_thread=MainThread loop_is_same=False
+2026-01-22 18:21:04,718 [MainThread] [INFO ]  Background loop is running, submitting coroutine
+2026-01-22 18:21:04,718 [MainThread] [INFO ]  Waiting for coroutine result
+2026-01-22 18:21:04,719 [ProcessHubEventBus] [WARNI]  No subscriber found for routing key: processhub.REGISTER_CONNECTION_REQUEST with the given callback.
+2026-01-22 18:21:04,719 [MainThread] [INFO ]  Submitting coroutine <coroutine object EventBusClient.off at 0x0000017DF7CFE110> to background loop with timeout 5.0
+2026-01-22 18:21:04,719 [MainThread] [INFO ]  caller_thread=MainThread loop_is_same=False
+2026-01-22 18:21:04,720 [MainThread] [INFO ]  Background loop is running, submitting coroutine
+2026-01-22 18:21:04,720 [MainThread] [INFO ]  Waiting for coroutine result
+2026-01-22 18:21:04,720 [ProcessHubEventBus] [WARNI]  No subscriber found for routing key: processhub.UNREGISTER_CONNECTION_REQUEST with the given callback.
+2026-01-22 18:21:04,721 [MainThread] [INFO ]  Submitting coroutine <coroutine object EventBusClient.off at 0x0000017DF7CFE110> to background loop with timeout 5.0
+2026-01-22 18:21:04,721 [MainThread] [INFO ]  caller_thread=MainThread loop_is_same=False
+2026-01-22 18:21:04,721 [MainThread] [INFO ]  Background loop is running, submitting coroutine
+2026-01-22 18:21:04,721 [MainThread] [INFO ]  Waiting for coroutine result
+2026-01-22 18:21:04,721 [ProcessHubEventBus] [WARNI]  No subscriber found for routing key: processhub.CONNECTION_INFO_REQUEST with the given callback.
+2026-01-22 18:21:04,721 [MainThread] [INFO ]  Submitting coroutine <coroutine object EventBusClient.off at 0x0000017DF7CFE110> to background loop with timeout 5.0
+2026-01-22 18:21:04,722 [MainThread] [INFO ]  caller_thread=MainThread loop_is_same=False
+2026-01-22 18:21:04,722 [MainThread] [INFO ]  Background loop is running, submitting coroutine
+2026-01-22 18:21:04,722 [MainThread] [INFO ]  Waiting for coroutine result
+2026-01-22 18:21:04,722 [ProcessHubEventBus] [WARNI]  No subscriber found for routing key: processhub.PROCESS_START_REQUEST with the given callback.
+2026-01-22 18:21:04,722 [MainThread] [INFO ]  Submitting coroutine <coroutine object EventBusClient.off at 0x0000017DF7CFE110> to background loop with timeout 5.0
+2026-01-22 18:21:04,722 [MainThread] [INFO ]  caller_thread=MainThread loop_is_same=False
+2026-01-22 18:21:04,722 [MainThread] [INFO ]  Background loop is running, submitting coroutine
+2026-01-22 18:21:04,722 [MainThread] [INFO ]  Waiting for coroutine result
+2026-01-22 18:21:04,722 [ProcessHubEventBus] [WARNI]  No subscriber found for routing key: processhub.PROCESS_STOP_REQUEST with the given callback.
+2026-01-22 18:21:04,723 [MainThread] [INFO ]  Submitting coroutine <coroutine object EventBusClient.off at 0x0000017DF7CFE110> to background loop with timeout 5.0
+2026-01-22 18:21:04,723 [MainThread] [INFO ]  caller_thread=MainThread loop_is_same=False
+2026-01-22 18:21:04,723 [MainThread] [INFO ]  Background loop is running, submitting coroutine
+2026-01-22 18:21:04,723 [MainThread] [INFO ]  Waiting for coroutine result
+2026-01-22 18:21:04,723 [ProcessHubEventBus] [WARNI]  No subscriber found for routing key: processhub.PROCESS_RESTART_READY with the given callback.
+2026-01-22 18:21:04,723 [MainThread] [INFO ]  Submitting coroutine <coroutine object EventBusClient.close at 0x0000017DF7D01C40> to background loop with timeout 5.0
+2026-01-22 18:21:04,723 [MainThread] [INFO ]  caller_thread=MainThread loop_is_same=False
+2026-01-22 18:21:04,723 [MainThread] [INFO ]  Background loop is running, submitting coroutine
+2026-01-22 18:21:04,723 [MainThread] [INFO ]  Waiting for coroutine result
+2026-01-22 18:21:04,728 [ProcessHubEventBus] [INFO ]  Unsubscribed 6 subscribers.
+2026-01-22 18:21:04,732 [ProcessHubEventBus] [INFO ]  Unsubscribed 6 subscribers.
+2026-01-22 18:21:04,735 [ProcessHubEventBus] [INFO ]  Unsubscribed 6 subscribers.
+2026-01-22 18:21:04,738 [ProcessHubEventBus] [INFO ]  Unsubscribed 6 subscribers.
+2026-01-22 18:21:04,742 [ProcessHubEventBus] [INFO ]  Unsubscribed 6 subscribers.
+2026-01-22 18:21:04,745 [ProcessHubEventBus] [INFO ]  Unsubscribed 6 subscribers.
+iting for coroutine result
+2026-01-22 18:18:53,744 [ProcessHubEventBus] [WARNI]  No subscriber found for routing key: processhub.PROCESS_RESTART_NOTIFY with the given callback.
+2026-01-22 18:18:53,744 [MainThread] [INFO ]  Submitting coroutine <coroutine object EventBusClient.off at 0x0000028FB1089E40> to background loop with timeout 5.0
+2026-01-22 18:18:53,744 [MainThread] [INFO ]  caller_thread=MainThread loop_is_same=False
+2026-01-22 18:18:53,744 [MainThread] [INFO ]  Background loop is running, submitting coroutine
+2026-01-22 18:18:53,744 [MainThread] [INFO ]  Waiting for coroutine result
+2026-01-22 18:18:53,744 [ProcessHubEventBus] [WARNI]  No subscriber found for routing key: processhub.PROCESS_RESTART_DONE with the given callback.
+2026-01-22 18:18:53,745 [MainThread] [INFO ]  Submitting coroutine <coroutine object EventBusClient.off at 0x0000028FB1089E40> to background loop with timeout 5.0
+2026-01-22 18:18:53,745 [MainThread] [INFO ]  caller_thread=MainThread loop_is_same=False
+2026-01-22 18:18:53,745 [MainThread] [INFO ]  Background loop is running, submitting coroutine
+2026-01-22 18:18:53,745 [MainThread] [INFO ]  Waiting for coroutine result
+2026-01-22 18:18:53,745 [ProcessHubEventBus] [WARNI]  No subscriber found for routing key: processhub.SERVER_SHUTDOWN_NOTIFY with the given callback.
+2026-01-22 18:18:53,745 [MainThread] [INFO ]  Submitting coroutine <coroutine object EventBusClient.close at 0x0000028FD052F760> to background loop with timeout 5.0
+2026-01-22 18:18:53,745 [MainThread] [INFO ]  caller_thread=MainThread loop_is_same=False
+2026-01-22 18:18:53,745 [MainThread] [INFO ]  Background loop is running, submitting coroutine
+2026-01-22 18:18:53,746 [MainThread] [INFO ]  Waiting for coroutine result
+2026-01-22 18:18:53,753 [ProcessHubEventBus] [INFO ]  Unsubscribed 8 subscribers.
+2026-01-22 18:18:53,758 [ProcessHubEventBus] [INFO ]  Unsubscribed 8 subscribers.
+2026-01-22 18:18:53,763 [ProcessHubEventBus] [INFO ]  Unsubscribed 8 subscribers.
+2026-01-22 18:18:53,768 [ProcessHubEventBus] [INFO ]  Unsubscribed 8 subscribers.
+2026-01-22 18:18:53,773 [ProcessHubEventBus] [INFO ]  Unsubscribed 8 subscribers.
+2026-01-22 18:18:53,778 [ProcessHubEventBus] [INFO ]  Unsubscribed 8 subscribers.
+2026-01-22 18:18:53,786 [ProcessHubEventBus] [INFO ]  Unsubscribed 8 subscribers.
+2026-01-22 18:18:53,803 [ProcessHubEventBus] [INFO ]  Unsubscribed 8 subscribers.

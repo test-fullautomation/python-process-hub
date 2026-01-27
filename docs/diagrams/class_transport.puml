@@ -1,0 +1,148 @@
+@startuml class_transport
+!theme plain
+title Process Hub - Transport Module Classes
+
+skinparam class {
+    BackgroundColor<<abstract>> #CCCCFF
+    BackgroundColor<<interface>> #FFCCCC
+    BackgroundColor<<dataclass>> #CCFFCC
+}
+
+package "transport" {
+
+    class TcpKeepaliveConfig <<dataclass>> {
+        +enabled: bool = True
+        +idle: int = 10
+        +interval: int = 5
+        +count: int = 3
+        +detection_time(): float
+    }
+
+    abstract class TransportBase <<abstract>> {
+        {abstract} +register_handler(topic, handler): void
+        {abstract} +start(): void
+        {abstract} +stop(): void
+        {abstract} +send(topic, message, target): void
+        {abstract} +send_async(topic, message, target): void
+        {abstract} +is_started: bool
+    }
+
+    class ZmqBroker {
+        -_xpub_port: int
+        -_xsub_port: int
+        -_bind_address: str
+        -_context: zmq.Context
+        -_xpub: zmq.Socket
+        -_xsub: zmq.Socket
+        -_thread: Thread
+        -_running: bool
+        +xpub_endpoint: str
+        +xsub_endpoint: str
+        +start(): void
+        +stop(): void
+        -_run_proxy(): void
+    }
+
+    class ZmqAsyncClient {
+        -_sub_endpoint: str
+        -_pub_endpoint: str
+        -_keepalive: TcpKeepaliveConfig
+        -_context: zmq.asyncio.Context
+        -_pub_socket: zmq.asyncio.Socket
+        -_sub_socket: zmq.asyncio.Socket
+        -_loop: asyncio.EventLoop
+        -_thread: Thread
+        -_running: bool
+        -_handlers: dict[str, Callable]
+        -_subscribed_topics: set[str]
+        +register_topic(topic, callback): void
+        +start(): void
+        +stop(): void
+        +send_message(topic, message, timeout): bool
+        +send_message_async(topic, message): void
+        -_run_loop(): void
+        -_async_main(): void
+        -_subscriber_loop(): void
+        -_async_send(topic, message): void
+        -_subscribe(topic): void
+        -_apply_keepalive(socket): void
+    }
+
+    class ZmqTransport {
+        -_start_broker: bool
+        -_xpub_port: int
+        -_xsub_port: int
+        -_bind_address: str
+        -_connect_address: str
+        -_keepalive: TcpKeepaliveConfig
+        -_broker: ZmqBroker
+        -_client: ZmqAsyncClient
+        -_handlers: dict[str, Callable]
+        -_started: bool
+        +register_handler(topic, handler): void
+        +start(): void
+        +stop(): void
+        +send(topic, message, target): void
+        +send_async(topic, message, target): void
+        +is_started: bool
+        -_serialize(message): Any
+    }
+
+    class InMemoryTransport {
+        -_handlers: dict[str, list[Callable]]
+        -_started: bool
+        +register_handler(topic, handler): void
+        +start(): void
+        +stop(): void
+        +send(topic, message, target): void
+        +send_async(topic, message, target): void
+        +is_started: bool
+    }
+
+    ZmqTransport --|> TransportBase
+    InMemoryTransport --|> TransportBase
+
+    ZmqTransport --> ZmqBroker : creates/manages
+    ZmqTransport --> ZmqAsyncClient : creates/manages
+    ZmqTransport --> TcpKeepaliveConfig : uses
+    ZmqAsyncClient --> TcpKeepaliveConfig : uses
+
+    note right of ZmqBroker
+      XPUB/XSUB broker pattern
+      Routes messages between
+      publishers and subscribers
+    end note
+
+    note right of ZmqAsyncClient
+      Runs asyncio event loop
+      in background thread for
+      non-blocking I/O
+    end note
+
+    note bottom of InMemoryTransport
+      Used for testing
+      Synchronous message delivery
+    end note
+
+    note right of TcpKeepaliveConfig
+      **TCP Keepalive for crash detection**
+      Detection time = idle + (interval × count)
+      Default: 10 + (5 × 3) = 25 seconds
+    end note
+}
+
+package "ZMQ Message Flow" {
+    note as N1
+      **Publisher (Client) Flow:**
+      1. Client connects to XSUB port
+      2. Sends message with topic prefix
+      3. Broker forwards to all subscribers
+
+      **Subscriber (Client) Flow:**
+      1. Client connects to XPUB port
+      2. Subscribes to specific topics
+      3. Receives messages matching topics
+    end note
+}
+
+@enduml

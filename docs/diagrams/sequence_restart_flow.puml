@@ -1,0 +1,100 @@
+@startuml sequence_restart_flow
+!theme plain
+title Process Restart Coordination Sequence
+
+participant "Client A" as clientA
+participant "Client B" as clientB
+participant "ProcessHubServer" as server
+participant "ProcessHubCore" as core
+participant "RestartStateMachine" as fsm
+participant "ProcessRegistry" as registry
+participant "ProcessExecutor" as executor
+
+== Health Check Detects Dead Process ==
+
+server -> core : tick()
+activate core
+core -> executor : is_running(process_name)
+executor --> core : false (dead)
+core -> core : _check_health() returns [dead_processes]
+
+core -> registry : mark_dead(dead_processes)
+core -> registry : get_requesters(process_name)
+registry --> core : [clientA, clientB]
+
+core -> fsm : detect_killed(dead_procs, panels)
+activate fsm
+fsm -> fsm : state = NOTIFYING
+fsm --> core : true
+deactivate fsm
+
+== Notify All Affected Panels ==
+
+core -> fsm : notifications_sent()
+fsm -> fsm : state = AWAITING_ACK
+
+core --> server : [RESTART_NOTIFY messages]
+deactivate core
+
+server -> clientA : send(RESTART_NOTIFY, {killed_processes})
+server -> clientB : send(RESTART_NOTIFY, {killed_processes})
+
+clientA -> clientA : save state, prepare for restart
+clientB -> clientB : save state, prepare for restart
+
+== Panels Acknowledge ==
+
+clientA -> server : send(RESTART_READY, {panel_id})
+activate server
+server -> core : handle_restart_ready()
+activate core
+core -> fsm : panel_acknowledged(clientA)
+fsm -> fsm : pending_panels.remove(clientA)
+fsm --> core : waiting (clientB pending)
+core --> server : []
+deactivate core
+deactivate server
+
+clientB -> server : send(RESTART_READY, {panel_id})
+activate server
+server -> core : handle_restart_ready()
+activate core
+core -> fsm : panel_acknowledged(clientB)
+fsm -> fsm : pending_panels.remove(clientB)
+fsm --> core : all_acknowledged
+
+== All Acknowledged - Begin Restart ==
+
+core -> fsm : begin_restart()
+fsm -> fsm : state = RESTARTING
+
+loop for each killed process
+    core -> executor : stop(name, force=true)
+    core -> executor : start(name, config)
+    executor --> core : (success, msg, pid)
+    core -> registry : update_state(name, RUNNING)
+end
+
+core -> fsm : restart_completed(success=true)
+fsm -> fsm : state = DONE
+
+core --> server : [RESTART_DONE messages]
+deactivate core
+
+server -> clientA : send(RESTART_DONE, {success: true})
+server -> clientB : send(RESTART_DONE, {success: true})
+deactivate server
+
+clientA -> clientA : restore state, resume
+clientB -> clientB : restore state, resume
+
+note over fsm
+  **RestartState Transitions:**
+  IDLE -> NOTIFYING -> AWAITING_ACK -> RESTARTING -> DONE -> IDLE
+
+  **Timeout Handling:**
+  If panels don't acknowledge within timeout,
+  restart proceeds anyway with failure notification
+end note
+
+@enduml

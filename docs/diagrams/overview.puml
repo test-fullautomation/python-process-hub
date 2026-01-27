@@ -1,0 +1,75 @@
+@startuml overview
+!theme plain
+title Process Hub - System Overview
+
+skinparam rectangle {
+    BackgroundColor<<server>> LightBlue
+    BackgroundColor<<client>> LightGreen
+    BackgroundColor<<process>> LightYellow
+    BackgroundColor<<transport>> LightGray
+}
+
+rectangle "Process Hub Server" <<server>> {
+    rectangle "ProcessHubServer\n(Runtime Wrapper)" as server_runtime
+    rectangle "ProcessHubCore\n(Business Logic)" as core
+    rectangle "ProcessRegistry\n(Process State)" as registry
+    rectangle "RestartStateMachine\n(Restart Coordination)" as restart_fsm
+    rectangle "ProcessExecutor\n(Start/Stop Processes)" as executor
+    rectangle "HubView\n(UI Interface)" as view
+}
+
+rectangle "Transport Layer" <<transport>> {
+    rectangle "ZmqTransport" as zmq
+    rectangle "ZmqBroker\n(XPUB/XSUB Proxy)" as broker
+    rectangle "InMemoryTransport\n(Testing)" as inmem
+}
+
+rectangle "Client 1" <<client>> {
+    rectangle "ProcessHubClient" as client1
+    rectangle "ClientController\n(Callbacks)" as ctrl1
+}
+
+rectangle "Client 2" <<client>> {
+    rectangle "ProcessHubClient" as client2
+    rectangle "ClientController\n(Callbacks)" as ctrl2
+}
+
+rectangle "Managed Processes" <<process>> {
+    rectangle "Process A" as proc_a
+    rectangle "Process B" as proc_b
+    rectangle "Process C" as proc_c
+}
+
+' Server internal connections
+server_runtime --> core : delegates
+core --> registry : manages
+core --> restart_fsm : coordinates
+server_runtime --> executor : start/stop
+server_runtime --> view : render
+
+' Transport connections
+server_runtime --> zmq : uses
+zmq --> broker : routes via
+client1 --> zmq : connects
+client2 --> zmq : connects
+
+' Client internal
+client1 --> ctrl1 : dispatches
+client2 --> ctrl2 : dispatches
+
+' Process management
+executor --> proc_a : manages
+executor --> proc_b : manages
+executor --> proc_c : manages
+
+note right of core
+  **Improvements Implemented:**
+  3.1 - Separate core logic vs runtime
+  3.2 - Explicit concurrency model
+  3.3 - Restart as state machine
+  3.4 - Normalized process representation
+  3.5 - Protocol schema with dataclasses
+  3.6 - UI decoupled via HubView protocol
+end note
+
+@enduml

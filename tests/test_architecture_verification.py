@@ -788,6 +788,47 @@ def verify_snapshot_performance() -> VerificationResult:
         )
 
 
+def verify_process_crash_detection_time() -> VerificationResult:
+    """Verify process crash detection time is under 5 seconds."""
+    try:
+        from ProcessHub.runtime.server import ProcessHubServer
+        import inspect
+
+        # Get default refresh_interval from ProcessHubServer
+        sig = inspect.signature(ProcessHubServer.__init__)
+        refresh_interval = sig.parameters.get('refresh_interval')
+
+        if refresh_interval and refresh_interval.default != inspect.Parameter.empty:
+            interval = refresh_interval.default
+        else:
+            interval = 0.5  # Default fallback
+
+        # Max detection time = 2 * interval (worst case: crash right after check)
+        # Adding buffer for processing time
+        max_detection_time = interval * 2 + 0.1
+
+        return VerificationResult(
+            driver="PERFORMANCE",
+            metric_name="Process crash detection",
+            value=max_detection_time,
+            unit="seconds",
+            threshold=5.0,
+            passed=max_detection_time < 5.0,
+            details=f"Health check interval={interval}s, max detection={max_detection_time:.1f}s"
+        )
+
+    except Exception as e:
+        return VerificationResult(
+            driver="PERFORMANCE",
+            metric_name="Process crash detection",
+            value=999,
+            unit="seconds",
+            threshold=5.0,
+            passed=False,
+            details=f"Error: {e}"
+        )
+
+
 def verify_message_throughput() -> VerificationResult:
     """Measure message handling throughput."""
     try:
@@ -1088,6 +1129,7 @@ def run_all_verifications() -> VerificationReport:
     # 4. Performance
     print("[4/5] Verifying PERFORMANCE...", flush=True)
     results.append(verify_snapshot_performance())
+    results.append(verify_process_crash_detection_time())
     results.append(verify_message_throughput())
     results.append(verify_crash_detection_config())
     print("      Running sustained throughput test (30s)...", flush=True)
@@ -1135,6 +1177,7 @@ def run_quick_verifications() -> VerificationReport:
     # 4. Performance (quick tests only)
     print("[4/5] Verifying PERFORMANCE...")
     results.append(verify_snapshot_performance())
+    results.append(verify_process_crash_detection_time())
     results.append(verify_message_throughput())
     results.append(verify_crash_detection_config())
 

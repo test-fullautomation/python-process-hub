@@ -1,0 +1,666 @@
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252">
+   <meta name="ProcessHub" content="ProcessHub">
+   <title>ProcessHub Test Cases</title>
+</head>
+<body vlink="#000000" text="#000000" link="#000000" bgcolor="#FFFFFF" alink="#000000">
+<hr width="100%" color="#FF8C00" align="center">
+<div align="center">
+<font size="6" face="Arial" color="#595959">
+<b>
+ProcessHub Test Cases<br>
+(<em>Process lifecycle management hub</em>)
+</b></font>
+</div>
+<hr width="100%" color="#FF8C00" align="center">
+
+<div>&nbsp;</div>
+
+<div align="center">
+
+<table frame="box" rules="all" valign="middle" width="1100" cellspacing="0" cellpadding="6" border="1" align="center">
+<colgroup>
+   <col width="4%" span="1">
+   <col width="8%" span="1">
+   <col width="16%" span="1">
+   <col width="9%" span="1">
+   <col width="63%" span="1">
+</colgroup>
+<tbody>
+
+<tr valign="middle" align="left">
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="right">
+<font size="2" face="Arial" color="#FF0000">
+<b>
+1
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#595959">
+<b>
+<a target="_blank" href="https://sourcecode.socialcoding.bosch.com/projects/BITSRF/repos/python-process-hub/browse/test/testfiles/PHB_0001.py">PHB_0001</a>
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#4169E1">
+ProcessRegistry
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#008000">
+GOODCASE
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="left">
+<font size="2" face="Arial" color="#595959"><i>
+<b>Register a new process in the registry</b><br>
+Expected: Process registered successfully with correct state
+
+
+</i></font></td>
+
+
+</tr>
+<tr valign="middle" align="left">
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="right">
+<font size="2" face="Arial" color="#FF0000">
+<b>
+2
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#595959">
+<b>
+<a target="_blank" href="https://sourcecode.socialcoding.bosch.com/projects/BITSRF/repos/python-process-hub/browse/test/testfiles/PHB_0002.py">PHB_0002</a>
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#4169E1">
+ProcessRegistry
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#008000">
+GOODCASE
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="left">
+<font size="2" face="Arial" color="#595959"><i>
+<b>Add a second requester to an existing process</b><br>
+Expected: Second requester added without re-registering the process
+
+
+</i></font></td>
+
+
+</tr>
+<tr valign="middle" align="left">
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="right">
+<font size="2" face="Arial" color="#FF0000">
+<b>
+3
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#595959">
+<b>
+<a target="_blank" href="https://sourcecode.socialcoding.bosch.com/projects/BITSRF/repos/python-process-hub/browse/test/testfiles/PHB_0003.py">PHB_0003</a>
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#4169E1">
+ProcessRegistry
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#008000">
+GOODCASE
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="left">
+<font size="2" face="Arial" color="#595959"><i>
+<b>Unregister last requester - process can be stopped</b><br>
+Expected: Unregister returns True indicating process can be stopped
+
+
+</i></font></td>
+
+
+</tr>
+<tr valign="middle" align="left">
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="right">
+<font size="2" face="Arial" color="#FF0000">
+<b>
+4
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#595959">
+<b>
+<a target="_blank" href="https://sourcecode.socialcoding.bosch.com/projects/BITSRF/repos/python-process-hub/browse/test/testfiles/PHB_0004.py">PHB_0004</a>
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#4169E1">
+ProcessRegistry
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#008000">
+GOODCASE
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="left">
+<font size="2" face="Arial" color="#595959"><i>
+<b>Unregister one requester while others remain</b><br>
+Expected: Unregister returns False indicating process should keep running
+
+
+</i></font></td>
+
+
+</tr>
+<tr valign="middle" align="left">
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="right">
+<font size="2" face="Arial" color="#FF0000">
+<b>
+5
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#595959">
+<b>
+<a target="_blank" href="https://sourcecode.socialcoding.bosch.com/projects/BITSRF/repos/python-process-hub/browse/test/testfiles/PHB_0005.py">PHB_0005</a>
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#4169E1">
+ProcessRegistry
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#008000">
+GOODCASE
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="left">
+<font size="2" face="Arial" color="#595959"><i>
+<b>Get state snapshot is immutable</b><br>
+Expected: Snapshot is a frozen copy that does not change when registry changes
+
+
+</i></font></td>
+
+
+</tr>
+<tr valign="middle" align="left">
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="right">
+<font size="2" face="Arial" color="#FF0000">
+<b>
+6
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#595959">
+<b>
+<a target="_blank" href="https://sourcecode.socialcoding.bosch.com/projects/BITSRF/repos/python-process-hub/browse/test/testfiles/PHB_0006.py">PHB_0006</a>
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#4169E1">
+ProcessControl
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#008000">
+GOODCASE
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="left">
+<font size="2" face="Arial" color="#595959"><i>
+<b>Start a single process successfully</b><br>
+Expected: Process started and response contains success
+
+
+</i></font></td>
+
+
+</tr>
+<tr valign="middle" align="left">
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="right">
+<font size="2" face="Arial" color="#FF0000">
+<b>
+7
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#595959">
+<b>
+<a target="_blank" href="https://sourcecode.socialcoding.bosch.com/projects/BITSRF/repos/python-process-hub/browse/test/testfiles/PHB_0007.py">PHB_0007</a>
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#4169E1">
+ProcessControl
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#008000">
+GOODCASE
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="left">
+<font size="2" face="Arial" color="#595959"><i>
+<b>Start multiple processes in a single request</b><br>
+Expected: All processes started and response contains success
+
+
+</i></font></td>
+
+
+</tr>
+<tr valign="middle" align="left">
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="right">
+<font size="2" face="Arial" color="#FF0000">
+<b>
+8
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#595959">
+<b>
+<a target="_blank" href="https://sourcecode.socialcoding.bosch.com/projects/BITSRF/repos/python-process-hub/browse/test/testfiles/PHB_0008.py">PHB_0008</a>
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#4169E1">
+ProcessControl
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#008000">
+GOODCASE
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="left">
+<font size="2" face="Arial" color="#595959"><i>
+<b>Stop process when requester is the last one</b><br>
+Expected: Process actually stopped and removed from registry
+
+
+</i></font></td>
+
+
+</tr>
+<tr valign="middle" align="left">
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="right">
+<font size="2" face="Arial" color="#FF0000">
+<b>
+9
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#595959">
+<b>
+<a target="_blank" href="https://sourcecode.socialcoding.bosch.com/projects/BITSRF/repos/python-process-hub/browse/test/testfiles/PHB_0009.py">PHB_0009</a>
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#4169E1">
+ProcessControl
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#008000">
+GOODCASE
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="left">
+<font size="2" face="Arial" color="#595959"><i>
+<b>Stop shared process - other requesters still active</b><br>
+Expected: Process keeps running, only requester removed
+
+
+</i></font></td>
+
+
+</tr>
+<tr valign="middle" align="left">
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="right">
+<font size="2" face="Arial" color="#FF0000">
+<b>
+10
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#595959">
+<b>
+<a target="_blank" href="https://sourcecode.socialcoding.bosch.com/projects/BITSRF/repos/python-process-hub/browse/test/testfiles/PHB_0010.py">PHB_0010</a>
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#4169E1">
+ProcessControl
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#008000">
+GOODCASE
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="left">
+<font size="2" face="Arial" color="#595959"><i>
+<b>Force stop a shared process</b><br>
+Expected: Process stopped regardless of other requesters
+
+
+</i></font></td>
+
+
+</tr>
+<tr valign="middle" align="left">
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="right">
+<font size="2" face="Arial" color="#FF0000">
+<b>
+11
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#595959">
+<b>
+<a target="_blank" href="https://sourcecode.socialcoding.bosch.com/projects/BITSRF/repos/python-process-hub/browse/test/testfiles/PHB_0011.py">PHB_0011</a>
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#4169E1">
+ProcessControl
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#FF0000">
+BADCASE
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="left">
+<font size="2" face="Arial" color="#595959"><i>
+<b>Start a process that fails to launch</b><br>
+Expected: Start response indicates failure with error message
+
+
+</i></font></td>
+
+
+</tr>
+<tr valign="middle" align="left">
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="right">
+<font size="2" face="Arial" color="#FF0000">
+<b>
+12
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#595959">
+<b>
+<a target="_blank" href="https://sourcecode.socialcoding.bosch.com/projects/BITSRF/repos/python-process-hub/browse/test/testfiles/PHB_0012.py">PHB_0012</a>
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#4169E1">
+ConnectionManagement
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#008000">
+GOODCASE
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="left">
+<font size="2" face="Arial" color="#595959"><i>
+<b>Register a client connection</b><br>
+Expected: Connection registered successfully with correct panel_id
+
+
+</i></font></td>
+
+
+</tr>
+<tr valign="middle" align="left">
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="right">
+<font size="2" face="Arial" color="#FF0000">
+<b>
+13
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#595959">
+<b>
+<a target="_blank" href="https://sourcecode.socialcoding.bosch.com/projects/BITSRF/repos/python-process-hub/browse/test/testfiles/PHB_0013.py">PHB_0013</a>
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#4169E1">
+ConnectionManagement
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#008000">
+GOODCASE
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="left">
+<font size="2" face="Arial" color="#595959"><i>
+<b>Register multiple connections in the same session</b><br>
+Expected: All panels registered and session_panel_ids updated correctly
+
+
+</i></font></td>
+
+
+</tr>
+<tr valign="middle" align="left">
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="right">
+<font size="2" face="Arial" color="#FF0000">
+<b>
+14
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#595959">
+<b>
+<a target="_blank" href="https://sourcecode.socialcoding.bosch.com/projects/BITSRF/repos/python-process-hub/browse/test/testfiles/PHB_0014.py">PHB_0014</a>
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#4169E1">
+ConnectionManagement
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#008000">
+GOODCASE
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="left">
+<font size="2" face="Arial" color="#595959"><i>
+<b>Unregister connection with orphan process cleanup</b><br>
+Expected: Connection removed and orphaned processes stopped
+
+
+</i></font></td>
+
+
+</tr>
+<tr valign="middle" align="left">
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="right">
+<font size="2" face="Arial" color="#FF0000">
+<b>
+15
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#595959">
+<b>
+<a target="_blank" href="https://sourcecode.socialcoding.bosch.com/projects/BITSRF/repos/python-process-hub/browse/test/testfiles/PHB_0015.py">PHB_0015</a>
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#4169E1">
+RestartCoordination
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#008000">
+GOODCASE
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="left">
+<font size="2" face="Arial" color="#595959"><i>
+<b>Detect killed process via health check tick</b><br>
+Expected: Dead process detected and restart notification sent
+
+
+</i></font></td>
+
+
+</tr>
+<tr valign="middle" align="left">
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="right">
+<font size="2" face="Arial" color="#FF0000">
+<b>
+16
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#595959">
+<b>
+<a target="_blank" href="https://sourcecode.socialcoding.bosch.com/projects/BITSRF/repos/python-process-hub/browse/test/testfiles/PHB_0016.py">PHB_0016</a>
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#4169E1">
+RestartCoordination
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#008000">
+GOODCASE
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="left">
+<font size="2" face="Arial" color="#595959"><i>
+<b>Full restart flow: detect, notify, acknowledge, restart</b><br>
+Expected: Complete restart cycle executed successfully
+
+
+</i></font></td>
+
+
+</tr>
+<tr valign="middle" align="left">
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="right">
+<font size="2" face="Arial" color="#FF0000">
+<b>
+17
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#595959">
+<b>
+<a target="_blank" href="https://sourcecode.socialcoding.bosch.com/projects/BITSRF/repos/python-process-hub/browse/test/testfiles/PHB_0017.py">PHB_0017</a>
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#4169E1">
+RestartCoordination
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#FF0000">
+BADCASE
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="left">
+<font size="2" face="Arial" color="#595959"><i>
+<b>Restart state machine timeout</b><br>
+Expected: Restart times out when panels do not acknowledge in time
+<br>
+Uses very short timeout (0.1s) to trigger timeout quickly
+
+</i></font></td>
+
+
+</tr>
+<tr valign="middle" align="left">
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="right">
+<font size="2" face="Arial" color="#FF0000">
+<b>
+18
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#595959">
+<b>
+<a target="_blank" href="https://sourcecode.socialcoding.bosch.com/projects/BITSRF/repos/python-process-hub/browse/test/testfiles/PHB_0018.py">PHB_0018</a>
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#4169E1">
+StateSnapshot
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#008000">
+GOODCASE
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="left">
+<font size="2" face="Arial" color="#595959"><i>
+<b>State snapshot contains all process information</b><br>
+Expected: Snapshot includes process names, states, and requesters
+
+
+</i></font></td>
+
+
+</tr>
+<tr valign="middle" align="left">
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="right">
+<font size="2" face="Arial" color="#FF0000">
+<b>
+19
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#595959">
+<b>
+<a target="_blank" href="https://sourcecode.socialcoding.bosch.com/projects/BITSRF/repos/python-process-hub/browse/test/testfiles/PHB_0019.py">PHB_0019</a>
+</b></font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#4169E1">
+StateSnapshot
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="middle">
+<font size="2" face="Arial" color="#008000">
+GOODCASE
+</font></td>
+
+<td colspan="1" valign="center" bgcolor="#F5F5F5" align="left">
+<font size="2" face="Arial" color="#595959"><i>
+<b>State snapshot contains connection information</b><br>
+Expected: Snapshot includes panel_ids, session_ids, and session groupings
+
+
+</i></font></td>
+
+
+</tr>
+
+</tbody></table></div>
+<div>&nbsp;</div>
+<hr width="100%" color="#FF8C00" align="center">
+<div align="center"><font size="2" color="#27408B">Generated: 05.02.2026 - 18:25:28</font></div>
+<div>&nbsp;</div>
+</body></html>
+

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=45", "wheel"]
+requires = ["setuptools>=45", "wheel", "colorama>=0.4.0"]   
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -29,11 +29,16 @@ keywords = ["process", "management", "zmq", "distributed"]
 
 dependencies = [
     "psutil>=5.9.0",
+    "pyzmq>=25.0.0",
 ]
 
 [project.optional-dependencies]
 zmq = [
     "pyzmq>=25.0.0",
+]
+eventbus = [
+    "eventbusclient",
+    "aio_pika>=9.0.0",
 ]
 web = [
     "fastapi>=0.100.0",
@@ -48,7 +53,7 @@ dev = [
     "colorama>=0.4.0",
 ]
 all = [
-    "python-process-hub[zmq,web,dev]",
+    "python-process-hub[zmq,eventbus,web,dev]",
 ]
 
 [project.urls]

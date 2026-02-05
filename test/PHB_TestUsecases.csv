@@ -1,0 +1,21 @@
+sep=|
+TESTID|SECTION|SUBSECTION|DESCRIPTION
+PHB_0001|ProcessRegistry|GOODCASE|Register a new process in the registry
+PHB_0002|ProcessRegistry|GOODCASE|Add a second requester to an existing process
+PHB_0003|ProcessRegistry|GOODCASE|Unregister last requester - process can be stopped
+PHB_0004|ProcessRegistry|GOODCASE|Unregister one requester while others remain
+PHB_0005|ProcessRegistry|GOODCASE|Get state snapshot is immutable
+PHB_0006|ProcessControl|GOODCASE|Start a single process successfully
+PHB_0007|ProcessControl|GOODCASE|Start multiple processes in a single request
+PHB_0008|ProcessControl|GOODCASE|Stop process when requester is the last one
+PHB_0009|ProcessControl|GOODCASE|Stop shared process - other requesters still active
+PHB_0010|ProcessControl|GOODCASE|Force stop a shared process
+PHB_0011|ProcessControl|BADCASE|Start a process that fails to launch
+PHB_0012|ConnectionManagement|GOODCASE|Register a client connection
+PHB_0013|ConnectionManagement|GOODCASE|Register multiple connections in the same session
+PHB_0014|ConnectionManagement|GOODCASE|Unregister connection with orphan process cleanup
+PHB_0015|RestartCoordination|GOODCASE|Detect killed process via health check tick
+PHB_0016|RestartCoordination|GOODCASE|Full restart flow: detect, notify, acknowledge, restart
+PHB_0017|RestartCoordination|BADCASE|Restart state machine timeout
+PHB_0018|StateSnapshot|GOODCASE|State snapshot contains all process information
+PHB_0019|StateSnapshot|GOODCASE|State snapshot contains connection information

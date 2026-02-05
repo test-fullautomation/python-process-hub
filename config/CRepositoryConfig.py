@@ -32,11 +32,17 @@ import os
 import sys
 import platform
 import json
-
+import importlib.util  
 import colorama as col
 
-from ProcessHub.version import VERSION
-from ProcessHub.version import VERSION_DATE
+# Load version directly from file to avoid triggering ProcessHub/__init__.py                                                                                                                                                        
+# which imports runtime dependencies (pyzmq, etc.) not available during build                                                                                                                                                       
+_version_path = os.path.join(os.path.dirname(__file__), "..", "ProcessHub", "version.py")                                                                                                                                           
+_spec = importlib.util.spec_from_file_location("ProcessHub.version", _version_path)                                                                                                                                                 
+_version_mod = importlib.util.module_from_spec(_spec)                                                                                                                                                                               
+_spec.loader.exec_module(_version_mod)                                                                                                                                                                                              
+VERSION = _version_mod.VERSION                                                                                                                                                                                                      
+VERSION_DATE = _version_mod.VERSION_DATE        
 
 col.init(autoreset=True)
 COLBR = col.Style.BRIGHT + col.Fore.RED

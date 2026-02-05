@@ -1,6 +1,6 @@
 @startuml state_restart
 !theme plain
-title Restart State Machine (Improvement 3.3)
+title Restart State Machine
 
 skinparam state {
     BackgroundColor<<idle>> #E8FDE8

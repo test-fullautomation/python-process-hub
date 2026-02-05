@@ -75,6 +75,7 @@ try:
    HAS_EVENTBUS = True
 except ImportError:
    HAS_EVENTBUS = False
+   BaseMessage = object  # Fallback so class definition doesn't fail
    logger.warning(
       "EventBusClient not installed. "
       "Install from: https://github.com/test-fullautomation/python-rabbitmq-messagebus"

@@ -1,0 +1,96 @@
+************************************************************************************************************************
+Copyright 2020-2026 Robert Bosch GmbH
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+------------------------------------------------------------------------------------------------------------------------
+Test Use Cases
+------------------------------------------------------------------------------------------------------------------------
+Test PHB_0001 / ProcessRegistry / GOODCASE
+Description: Register a new process in the registry
+Expectation: Process registered successfully with correct state
+------------------------------------------------------------------------------------------------------------------------
+Test PHB_0002 / ProcessRegistry / GOODCASE
+Description: Add a second requester to an existing process
+Expectation: Second requester added without re-registering the process
+------------------------------------------------------------------------------------------------------------------------
+Test PHB_0003 / ProcessRegistry / GOODCASE
+Description: Unregister last requester - process can be stopped
+Expectation: Unregister returns True indicating process can be stopped
+------------------------------------------------------------------------------------------------------------------------
+Test PHB_0004 / ProcessRegistry / GOODCASE
+Description: Unregister one requester while others remain
+Expectation: Unregister returns False indicating process should keep running
+------------------------------------------------------------------------------------------------------------------------
+Test PHB_0005 / ProcessRegistry / GOODCASE
+Description: Get state snapshot is immutable
+Expectation: Snapshot is a frozen copy that does not change when registry changes
+------------------------------------------------------------------------------------------------------------------------
+Test PHB_0006 / ProcessControl / GOODCASE
+Description: Start a single process successfully
+Expectation: Process started and response contains success
+------------------------------------------------------------------------------------------------------------------------
+Test PHB_0007 / ProcessControl / GOODCASE
+Description: Start multiple processes in a single request
+Expectation: All processes started and response contains success
+------------------------------------------------------------------------------------------------------------------------
+Test PHB_0008 / ProcessControl / GOODCASE
+Description: Stop process when requester is the last one
+Expectation: Process actually stopped and removed from registry
+------------------------------------------------------------------------------------------------------------------------
+Test PHB_0009 / ProcessControl / GOODCASE
+Description: Stop shared process - other requesters still active
+Expectation: Process keeps running, only requester removed
+------------------------------------------------------------------------------------------------------------------------
+Test PHB_0010 / ProcessControl / GOODCASE
+Description: Force stop a shared process
+Expectation: Process stopped regardless of other requesters
+------------------------------------------------------------------------------------------------------------------------
+Test PHB_0011 / ProcessControl / BADCASE
+Description: Start a process that fails to launch
+Expectation: Start response indicates failure with error message
+------------------------------------------------------------------------------------------------------------------------
+Test PHB_0012 / ConnectionManagement / GOODCASE
+Description: Register a client connection
+Expectation: Connection registered successfully with correct panel_id
+------------------------------------------------------------------------------------------------------------------------
+Test PHB_0013 / ConnectionManagement / GOODCASE
+Description: Register multiple connections in the same session
+Expectation: All panels registered and session_panel_ids updated correctly
+------------------------------------------------------------------------------------------------------------------------
+Test PHB_0014 / ConnectionManagement / GOODCASE
+Description: Unregister connection with orphan process cleanup
+Expectation: Connection removed and orphaned processes stopped
+------------------------------------------------------------------------------------------------------------------------
+Test PHB_0015 / RestartCoordination / GOODCASE
+Description: Detect killed process via health check tick
+Expectation: Dead process detected and restart notification sent
+------------------------------------------------------------------------------------------------------------------------
+Test PHB_0016 / RestartCoordination / GOODCASE
+Description: Full restart flow: detect, notify, acknowledge, restart
+Expectation: Complete restart cycle executed successfully
+------------------------------------------------------------------------------------------------------------------------
+Test PHB_0017 / RestartCoordination / BADCASE
+Description: Restart state machine timeout
+Expectation: Restart times out when panels do not acknowledge in time
+Comment....: Uses very short timeout (0.1s) to trigger timeout quickly
+------------------------------------------------------------------------------------------------------------------------
+Test PHB_0018 / StateSnapshot / GOODCASE
+Description: State snapshot contains all process information
+Expectation: Snapshot includes process names, states, and requesters
+------------------------------------------------------------------------------------------------------------------------
+Test PHB_0019 / StateSnapshot / GOODCASE
+Description: State snapshot contains connection information
+Expectation: Snapshot includes panel_ids, session_ids, and session groupings
+------------------------------------------------------------------------------------------------------------------------
+Generated: 05.02.2026 - 18:25:28
+

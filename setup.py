@@ -35,7 +35,13 @@ import setuptools
 from setuptools.command.install import install
 
 # prefer the repository local version of all additional libraries
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "./additions")))
+# When PEP 517 runs setup.py via exec(), __file__ is not available - fall back to CWD
+try:
+    _THIS_DIR = os.path.abspath(os.path.dirname(__file__))
+except NameError:
+    _THIS_DIR = os.path.abspath(os.getcwd())
+sys.path.insert(0, _THIS_DIR)
+sys.path.insert(0, os.path.join(_THIS_DIR, "additions"))
 
 from config.CRepositoryConfig import CRepositoryConfig
 from additions.CExtendedSetup import CExtendedSetup
@@ -78,7 +84,14 @@ class ExtendedInstallCommand(install):
 # -- setting up the repository configuration
 oRepositoryConfig = None
 try:
-    oRepositoryConfig = CRepositoryConfig(os.path.abspath(sys.argv[0]))
+    # When pip runs setup.py via PEP 517 build backend, sys.argv[0] points to
+    # pip's internal script, not setup.py. Use __file__ if available (direct execution),
+    # otherwise fall back to CWD which PEP 517 sets to the project root.
+    try:
+        _setup_path = os.path.abspath(__file__)
+    except NameError:
+        _setup_path = os.path.abspath(os.path.join(os.getcwd(), "setup.py"))
+    oRepositoryConfig = CRepositoryConfig(_setup_path)
 except Exception as ex:
     print()
     printexception(str(ex))

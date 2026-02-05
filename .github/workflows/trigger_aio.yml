@@ -18,10 +18,18 @@ jobs:
         run: |
           # Get branch created merge request
           PULL_REQUEST_BRANCH="${{ github.head_ref }}"
-          curl -X POST https://api.github.com/repos/test-fullautomation/RobotFramework_AIO/dispatches \
-          --header 'authorization: Bearer ${{ secrets.PAT_THONG }}' \
-          -H 'Accept: application/vnd.github.everest-preview+json' \
-          --data '{"event_type": "TRIGGER_AIO", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'", "branch": "'"$PULL_REQUEST_BRANCH"'" }}'
+          RESPONSE_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST https://api.github.com/repos/test-fullautomation/RobotFramework_AIO/dispatches \
+            --header 'authorization: Bearer ${{ secrets.PAT_THONG }}' \
+            -H 'Accept: application/vnd.github.everest-preview+json' \
+            --data '{"event_type": "TRIGGER_AIO", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'", "branch": "'"$PULL_REQUEST_BRANCH"'" }}')
+
+          echo "Dispatch request returned HTTP status: $RESPONSE_CODE"
+
+          if [ "$RESPONSE_CODE" -lt 200 ] || [ "$RESPONSE_CODE" -ge 300 ]; then
+            echo "Error: Failed to trigger RobotFramework AIO workflow (HTTP $RESPONSE_CODE)." >&2
+            exit 1
+          fi
 
   status-build-aio:
     runs-on: ubuntu-latest

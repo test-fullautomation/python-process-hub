@@ -20,6 +20,10 @@ ADRs document important architectural decisions made during the development of t
 | [ADR-010](010-server-shutdown-notification.md) | Server Shutdown Notification Protocol | Accepted | 2026-01-21 | Nguyen Huynh Tri Cuong | Nguyen Huynh Tri Cuong |
 | [ADR-011](011-hub-reset-without-restart.md) | Hub Reset Without Server Restart | Accepted | 2026-01-21 | Nguyen Huynh Tri Cuong | Nguyen Huynh Tri Cuong |
 | [ADR-012](012-strategy-pattern-for-extensibility.md) | Strategy Pattern for Core Extensibility | Proposed | 2026-01-22 | Nguyen Huynh Tri Cuong | Nguyen Huynh Tri Cuong |
+| [ADR-013](013-fastapi-for-web-dashboard.md) | FastAPI for Web Dashboard | Accepted | 2026-01-15 | Nguyen Huynh Tri Cuong | Nguyen Huynh Tri Cuong |
+| [ADR-014](014-eventbus-transport-with-rabbitmq.md) | EventBus Transport with RabbitMQ | Accepted | 2026-01-22 | Nguyen Huynh Tri Cuong | Nguyen Huynh Tri Cuong |
+| [ADR-015](015-process-ownership-model.md) | Process Ownership Model (Reference Counting) | Accepted | 2026-01-22 | Nguyen Huynh Tri Cuong | Nguyen Huynh Tri Cuong |
+| [ADR-016](016-immutable-state-snapshots.md) | Immutable State Snapshots for UI | Accepted | 2026-01-22 | Nguyen Huynh Tri Cuong | Nguyen Huynh Tri Cuong |
 
 ## Summary of Design Decisions
 
@@ -34,21 +38,27 @@ The system is built on two fundamental principles:
    - **Transport Layer**: Pluggable message transport
    - **Runtime Layer**: Thin adapter wiring components together
 
-### Pluggability (ADR-003, ADR-007, ADR-008)
+### Pluggability (ADR-003, ADR-007, ADR-008, ADR-014)
 
-Three key components are designed as pluggable interfaces:
+Key components are designed as pluggable interfaces:
 
 | Component | Interface | Implementations |
 |-----------|-----------|-----------------|
-| Transport | `TransportBase` | ZmqTransport, InMemoryTransport |
+| Transport | `TransportBase` | ZmqTransport, EventBusTransport, InMemoryTransport |
 | View | `HubView` | ConsoleView, WebView, NullView |
 | Executor | `ProcessExecutor` | SimpleExecutor, MockExecutor, WindowsExecutor |
 
-### State Management (ADR-004, ADR-005)
+**EventBus Transport (ADR-014)**: RabbitMQ-based transport for distributed deployments across networks, with auto-reconnect and message persistence.
+
+### State Management (ADR-004, ADR-005, ADR-015, ADR-016)
 
 1. **Restart State Machine** (ADR-004): Restart coordination is modeled as an explicit FSM with states: IDLE → DETECTING → NOTIFYING → AWAITING_ACK → RESTARTING → DONE
 
 2. **Typed Process State** (ADR-005): Process state uses enums (`ProcessState`) and dataclasses (`ProcessInfo`) instead of mixed-type dictionaries.
+
+3. **Process Ownership Model** (ADR-015): Reference counting allows multiple panels to share processes. Process stops only when all requesters release it.
+
+4. **Immutable Snapshots** (ADR-016): UI receives frozen dataclass copies of state, enabling lock-free rendering without race conditions.
 
 ### Protocol Design (ADR-006)
 
@@ -83,6 +93,20 @@ This approach provides:
 - **Type safety**: Protocol classes ensure implementations are complete
 - **Composability**: Mix and match different strategies
 - **Backward compatibility**: Default strategies maintain existing behavior
+
+### Web Dashboard (ADR-013)
+
+**FastAPI** was chosen for the web dashboard because:
+
+| Requirement | FastAPI Solution |
+|-------------|------------------|
+| Async support | Native async/await |
+| API documentation | Automatic OpenAPI/Swagger |
+| Type validation | Pydantic models |
+| Performance | Built on Starlette (high performance) |
+| Embedded deployment | Runs with Uvicorn in background thread |
+
+Alternatives considered: Flask, Django REST, Tornado, Starlette, plain HTTP server.
 
 ## Design Principles
 

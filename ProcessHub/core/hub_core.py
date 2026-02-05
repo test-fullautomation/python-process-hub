@@ -655,6 +655,10 @@ Stops processes only if no other panels need them, unless force=True.
   List of outgoing messages (stop response).
         """
         with self._operation_lock:
+            stopped = []
+            still_in_use = []
+            failed = []
+
             for proc_name in req.process_list:
                 # Check if we can stop (no other requesters)
                 can_stop = self._registry.unregister(proc_name, req.panel_id)
@@ -666,22 +670,38 @@ Stops processes only if no other panels need them, unless force=True.
 
                     if success:
                         self._registry.remove(proc_name)
+                        stopped.append(proc_name)
                         logger.info("Stopped process %s", proc_name)
                     else:
+                        failed.append(proc_name)
                         logger.error("Failed to stop process %s", proc_name)
                 else:
+                    still_in_use.append(proc_name)
                     logger.info(
                         "Process %s still needed by other panels",
                         proc_name,
                     )
+
+            # Build detailed response message
+            parts = []
+            if stopped:
+                parts.append(f"Stopped: {stopped}")
+            if still_in_use:
+                parts.append(f"Still in use by other panels: {still_in_use}")
+            if failed:
+                parts.append(f"Failed to stop: {failed}")
+            message = "; ".join(parts) if parts else "No processes to stop"
 
             return [
                 OutgoingMessage(
                     msg_type=MessageType.STOP_RESPONSE,
                     payload=ProcessStopResponse(
                         panel_id=req.panel_id,
-                        success=True,
-                        message="Stop request completed",
+                        success=len(failed) == 0,
+                        message=message,
+                        stopped=stopped,
+                        still_in_use=still_in_use,
+                        failed=failed,
                     ),
                     target_panel=req.panel_id,
                 )

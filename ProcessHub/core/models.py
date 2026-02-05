@@ -314,11 +314,21 @@ ProcessStopRequest: Client -> Server message to stop process(es).
 class ProcessStopResponse(MessageBase):
     """
 ProcessStopResponse: Server -> Client message with stop result.
+
+Provides detailed feedback on what happened to each process:
+
+* ``stopped`` - processes that were actually terminated
+* ``still_in_use`` - processes where only the requester was removed
+  (other clients still need them)
+* ``failed`` - processes that failed to stop
     """
 
     panel_id: str = ""
     success: bool = True
     message: str = ""
+    stopped: list[str] = field(default_factory=list)
+    still_in_use: list[str] = field(default_factory=list)
+    failed: list[str] = field(default_factory=list)
 
 
 # --- Restart Coordination Messages ---

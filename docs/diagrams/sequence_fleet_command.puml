@@ -1,0 +1,79 @@
+@startuml sequence_fleet_command
+!theme plain
+skinparam sequenceMessageAlign center
+
+title Fleet Orchestrator - Command Routing Sequence
+
+participant "CI/CD Script" as CI #f5f5f5
+participant "FleetClient" as Client #fce4ec
+participant "FleetOrchestrator" as Orch #e8f5e9
+participant "HubRegistry" as Reg #c8e6c9
+participant "EventBus\nTransport" as Bus #fff3e0
+participant "HubAgent\n(bench-1)" as Agent #e3f2fd
+participant "ProcessHubServer\n(bench-1)" as Server #e3f2fd
+
+== Start Processes via FleetClient ==
+
+CI -> Client : start_processes("bench-1", ["worker_a", "worker_b"])
+Client -> Orch : send_command(hub_id, "start_process", params)
+
+Orch -> Reg : get_hub("bench-1")
+Reg --> Orch : HubSnapshot(status="online")
+note right: Validates hub exists\nand is not offline
+
+Orch -> Orch : command_id = uuid4()
+Orch -> Bus : send(FLEET_COMMAND, {command_id, hub_id, action, params})
+Orch --> Client : command_id
+Client --> CI : command_id
+
+Bus -> Agent : _on_fleet_command(data)
+Agent -> Agent : hub_id == self._hub_id? Yes
+
+Agent -> Server : core.handle_start_request(ProcessStartRequest)
+Server --> Agent : list[OutgoingMessage]
+
+Agent -> Agent : FleetCommandResult(success=True)
+Agent -> Bus : send(FLEET_COMMAND_RESULT, {command_id, success, data})
+
+note over Bus
+    Result available for correlation
+    via command_id
+end note
+
+== Reset Hub via REST API ==
+
+CI -> Orch : POST /api/fleet/hubs/bench-1/reset
+Orch -> Reg : get_hub("bench-1")
+Reg --> Orch : HubSnapshot(status="online")
+
+Orch -> Bus : send(FLEET_COMMAND, {action: "reset"})
+
+Bus -> Agent : _on_fleet_command(data)
+Agent -> Server : reset()
+Server --> Agent : (True, "Reset successful")
+
+Agent -> Bus : send(FLEET_COMMAND_RESULT, {success: True})
+
+== Command to Offline Hub (Error) ==
+
+CI -> Client : start_processes("bench-3", ["worker_a"])
+Client -> Orch : send_command("bench-3", "start_process", ...)
+Orch -> Reg : get_hub("bench-3")
+Reg --> Orch : HubSnapshot(status="offline")
+Orch --> Client : **ValueError: Hub is offline: bench-3**
+Client --> CI : **raises ValueError**
+
+== Batch Operation ==
+
+CI -> Client : start_on_all_hubs(["worker_a"])
+Client -> Orch : get_fleet_snapshot()
+Orch --> Client : FleetStateSnapshot(hubs=[bench-1, bench-2])
+
+loop for each online hub
+    Client -> Orch : send_command(hub_id, "start_process", ...)
+    Orch -> Bus : send(FLEET_COMMAND, ...)
+end
+
+Client --> CI : {hub_id: command_id, ...}
+
+@enduml

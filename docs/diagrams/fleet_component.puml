@@ -1,0 +1,108 @@
+@startuml fleet_component
+!theme plain
+title Fleet Orchestrator - Component Diagram
+
+top to bottom direction
+
+skinparam component {
+    BackgroundColor<<fleet>> #E8F4FD
+    BackgroundColor<<core>> #E8FDE8
+    BackgroundColor<<transport>> #FDF4E8
+    BackgroundColor<<web>> #F4E8FD
+    BackgroundColor<<client>> #FDFDE8
+}
+
+package "process_hub" {
+
+    package "fleet" <<fleet>> {
+        component [FleetOrchestrator] as orchestrator
+        component [HubAgent] as hub_agent
+        component [FleetClient] as fleet_client
+        component [HubRegistry] as hub_registry
+        component [FleetWebAPI] as web_api
+        component [models] as fleet_models
+        component [topics] as fleet_topics
+
+        note bottom of orchestrator
+          Central coordinator
+          Hub discovery
+          Command routing
+          Health monitoring
+        end note
+
+        note bottom of hub_agent
+          Sidecar per hub
+          Heartbeat loop
+          Status report loop
+          Command handler
+        end note
+    }
+
+    package "core" <<core>> {
+        interface "ProcessHubCore" as core_api
+        component [ProcessRegistry] as proc_registry
+        component [models (MessageBase)] as core_models
+
+        note bottom of core_api
+          Existing public API
+          get_state_snapshot()
+          handle_start_request()
+          handle_stop_request()
+        end note
+    }
+
+    package "runtime" <<core>> {
+        component [ProcessHubServer] as server
+
+        note bottom of server
+          Existing server
+          Unmodified by fleet
+        end note
+    }
+
+    package "transport" <<transport>> {
+        interface "TransportBase" as transport_base
+        component [EventBusTransport] as eventbus
+        component [InMemoryTransport] as inmem
+
+        eventbus ..|> transport_base
+        inmem ..|> transport_base
+    }
+
+    package "web" <<web>> {
+        component [FastAPI App] as fastapi
+        component [Pydantic Models] as pydantic
+        component [HTML Dashboard] as dashboard
+    }
+}
+
+' Fleet internal dependencies
+orchestrator --> hub_registry : manages
+orchestrator --> fleet_topics : uses
+orchestrator --> fleet_models : uses
+orchestrator --> transport_base : send/receive
+
+hub_agent --> fleet_topics : uses
+hub_agent --> fleet_models : uses
+hub_agent --> transport_base : send/receive
+
+fleet_client --> orchestrator : delegates to
+fleet_client --> transport_base : event callbacks
+
+web_api --> orchestrator : queries & commands
+web_api --> fastapi : creates routes
+web_api --> pydantic : request/response models
+web_api --> dashboard : renders
+
+' Fleet -> Core (overlay, public API only)
+hub_agent --> server : attached to
+hub_agent --> core_api : uses public API
+
+' Model inheritance
+fleet_models --> core_models : extends MessageBase
+
+' Layout hints
+fleet -[hidden]down- core
+core -[hidden]down- transport
+
+@enduml

@@ -1,0 +1,70 @@
+@startuml sequence_fleet_discovery
+!theme plain
+skinparam sequenceMessageAlign center
+
+title Fleet Orchestrator - Hub Discovery & Heartbeat Sequence
+
+participant "HubAgent\n(Hub PC 1)" as Agent1 #e3f2fd
+participant "HubAgent\n(Hub PC 2)" as Agent2 #e3f2fd
+participant "EventBus\nTransport" as Bus #fff3e0
+participant "FleetOrchestrator" as Orch #e8f5e9
+participant "HubRegistry" as Reg #c8e6c9
+participant "FleetClient" as Client #fce4ec
+
+== Hub Discovery ==
+
+Agent1 -> Bus : send(HUB_ANNOUNCE)
+Bus -> Orch : _on_hub_announce({hub_id: "bench-1", ...})
+Orch -> Reg : register("bench-1", info)
+Reg --> Orch : True (new)
+
+Orch -> Bus : send(HUB_REGISTERED, {hub_id: "bench-1", success: true})
+Bus --> Agent1 : HUB_REGISTERED
+
+Orch -> Bus : send(HUB_ONLINE, {hub_id: "bench-1"})
+Bus --> Client : _handle_hub_online()
+note right: FleetClient triggers\non_hub_online callbacks
+
+Agent2 -> Bus : send(HUB_ANNOUNCE)
+Bus -> Orch : _on_hub_announce({hub_id: "bench-2", ...})
+Orch -> Reg : register("bench-2", info)
+Reg --> Orch : True (new)
+
+Orch -> Bus : send(HUB_REGISTERED, {hub_id: "bench-2", success: true})
+Orch -> Bus : send(HUB_ONLINE, {hub_id: "bench-2"})
+
+== Periodic Heartbeat ==
+
+Agent1 -> Bus : send(HUB_ANNOUNCE)
+Bus -> Orch : _on_hub_announce({hub_id: "bench-1"})
+Orch -> Reg : register("bench-1", info)
+Reg --> Orch : False (existing)
+Orch -> Reg : update_heartbeat("bench-1")
+note right: No HUB_REGISTERED sent\nfor repeated announces
+
+== Periodic Status Report ==
+
+Agent1 -> Agent1 : server.core.get_state_snapshot()
+Agent1 -> Bus : send(HUB_STATUS_REPORT, {process_count: 3, ...})
+Bus -> Orch : _on_hub_status_report({hub_id: "bench-1", ...})
+Orch -> Reg : update_status("bench-1", report)
+
+== Health Check Tick ==
+
+Orch -> Orch : tick()
+Orch -> Reg : check_health(timeout=30s)
+note right: All hubs healthy\n(no offline detected)
+Reg --> Orch : [] (empty)
+
+== Graceful Shutdown ==
+
+Agent1 -> Bus : send(HUB_DEREGISTER, {reason: "graceful_shutdown"})
+Bus -> Orch : _on_hub_deregister({hub_id: "bench-1"})
+Orch -> Reg : deregister("bench-1")
+
+note over Orch
+    Hub removed from registry.
+    hub_count decremented.
+end note
+
+@enduml

@@ -24,6 +24,10 @@ ADRs document important architectural decisions made during the development of t
 | [ADR-014](014-eventbus-transport-with-rabbitmq.md) | EventBus Transport with RabbitMQ | Accepted | 2026-01-22 | Nguyen Huynh Tri Cuong | Nguyen Huynh Tri Cuong |
 | [ADR-015](015-process-ownership-model.md) | Process Ownership Model (Reference Counting) | Accepted | 2026-01-22 | Nguyen Huynh Tri Cuong | Nguyen Huynh Tri Cuong |
 | [ADR-016](016-immutable-state-snapshots.md) | Immutable State Snapshots for UI | Accepted | 2026-01-22 | Nguyen Huynh Tri Cuong | Nguyen Huynh Tri Cuong |
+| [ADR-017](017-fleet-orchestrator-overlay-pattern.md) | Fleet Orchestrator as Overlay Pattern | Accepted | 2026-02-06 | Nguyen Huynh Tri Cuong | Nguyen Huynh Tri Cuong |
+| [ADR-018](018-heartbeat-based-hub-health-detection.md) | Heartbeat-Based Hub Health Detection | Accepted | 2026-02-06 | Nguyen Huynh Tri Cuong | Nguyen Huynh Tri Cuong |
+| [ADR-019](019-fleet-command-routing-through-orchestrator.md) | Fleet Command Routing Through Orchestrator | Accepted | 2026-02-06 | Nguyen Huynh Tri Cuong | Nguyen Huynh Tri Cuong |
+| [ADR-020](020-fleet-frozen-state-snapshots.md) | Fleet Frozen State Snapshots | Accepted | 2026-02-06 | Nguyen Huynh Tri Cuong | Nguyen Huynh Tri Cuong |
 
 ## Summary of Design Decisions
 
@@ -107,6 +111,25 @@ This approach provides:
 | Embedded deployment | Runs with Uvicorn in background thread |
 
 Alternatives considered: Flask, Django REST, Tornado, Starlette, plain HTTP server.
+
+### Fleet Orchestrator (ADR-017, ADR-018, ADR-019, ADR-020)
+
+The Fleet Orchestrator coordinates multiple ProcessHub instances across machines:
+
+| Feature | ADR | Description |
+|---------|-----|-------------|
+| Overlay Pattern | ADR-017 | Fleet is an additive layer, no core modifications |
+| Health Detection | ADR-018 | Heartbeat-based hub liveness monitoring |
+| Command Routing | ADR-019 | Centralized command flow through orchestrator |
+| Fleet Snapshots | ADR-020 | Immutable snapshots for fleet state queries |
+
+Key design choices:
+- **Sidecar pattern**: HubAgent runs alongside ProcessHubServer, using only public APIs
+- **Graceful degradation**: If orchestrator fails, local hubs continue working independently
+- **Push-based health**: Hubs send heartbeats; orchestrator detects absence passively
+- **Central routing**: All fleet commands pass through orchestrator for validation and audit
+
+See [Fleet Orchestrator Plan](../FLEET_ORCHESTRATOR.md) for full architecture details.
 
 ## Design Principles
 

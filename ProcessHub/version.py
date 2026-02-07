@@ -15,5 +15,5 @@
 #
 # Version and date of ProcessHub
 #
-VERSION      = "1.0.0"
-VERSION_DATE = "15.01.2026"
+VERSION      = "1.1.0"
+VERSION_DATE = "06.02.2026"

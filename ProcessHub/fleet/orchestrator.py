@@ -378,6 +378,8 @@ Get an immutable snapshot of a single hub.
             connection_count=data.get("connection_count", 0),
             processes=data.get("processes", []),
             connections=data.get("connections", []),
+            configured_processes=data.get("configured_processes", []),
+            process_configs=data.get("process_configs", {}),
             restart_state=data.get("restart_state", ""),
         )
 

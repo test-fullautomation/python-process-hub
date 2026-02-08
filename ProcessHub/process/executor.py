@@ -50,6 +50,7 @@ from __future__ import annotations
 
 import logging
 import os
+import signal
 import shutil
 import subprocess
 import sys
@@ -169,20 +170,26 @@ For production Windows use, consider WindowsExecutor.
     def __init__(
         self,
         start_callback: Optional[Callable[[str, dict], subprocess.Popen]] = None,
+        stop_callback: Optional[Callable[[str], None]] = None,
         stop_timeout: float = 5.0,
     ):
         """
 Initialize executor.
 
 Args:
-    
+
     start_callback: Optional custom start function
+
+    stop_callback: Optional callback invoked after a process is stopped.
+        Called with the process name. Useful for cleanup tasks like
+        notifying external registries.
 
     stop_timeout: Timeout for graceful stop (seconds)
         """
         self._processes: dict[str, Any] = {}  # name -> process object
         self._pids: dict[str, int] = {}  # name -> pid
         self._start_callback = start_callback
+        self._stop_callback = stop_callback
         self._stop_timeout = stop_timeout
 
     def start(
@@ -319,10 +326,26 @@ Stop a process.
     ) -> tuple[bool, str]:
         """
 Stop a Popen process.
+
+On Windows, proc.terminate() calls TerminateProcess which kills the
+process immediately without allowing cleanup handlers (finally blocks,
+atexit, etc.) to run.  Instead, send CTRL_BREAK_EVENT first so that
+Python services can catch KeyboardInterrupt and run graceful shutdown
+(e.g. unregister from service registry, close connections).
         """
         try:
-            # Try graceful termination
-            proc.terminate()
+            if sys.platform == "win32":
+                # Send CTRL_BREAK_EVENT for graceful shutdown.
+                # This works because the process was created with
+                # CREATE_NEW_PROCESS_GROUP.
+                try:
+                    os.kill(proc.pid, signal.CTRL_BREAK_EVENT)
+                except OSError:
+                    # Fallback if CTRL_BREAK_EVENT fails
+                    proc.terminate()
+            else:
+                proc.terminate()
+
             try:
                 proc.wait(timeout=self._stop_timeout)
             except subprocess.TimeoutExpired:
@@ -335,11 +358,20 @@ Stop a Popen process.
             # Cleanup
             self._processes.pop(name, None)
             self._pids.pop(name, None)
+            self._invoke_stop_callback(name)
             return True, f"Process {name} stopped"
 
         except Exception as e:
             logger.exception("Error stopping Popen process %s", name)
             return False, f"Error stopping {name}: {str(e)}"
+
+    def _invoke_stop_callback(self, name: str) -> None:
+        """Invoke stop_callback if configured."""
+        if self._stop_callback is not None:
+            try:
+                self._stop_callback(name)
+            except Exception:
+                logger.warning("stop_callback failed for %s", name, exc_info=True)
 
     def _stop_psutil(
         self, name: str, proc: psutil.Process, force: bool
@@ -362,12 +394,14 @@ Stop a psutil Process.
             # Cleanup
             self._processes.pop(name, None)
             self._pids.pop(name, None)
+            self._invoke_stop_callback(name)
             return True, f"Process {name} stopped"
 
         except psutil.NoSuchProcess:
             # Already dead
             self._processes.pop(name, None)
             self._pids.pop(name, None)
+            self._invoke_stop_callback(name)
             return True, f"Process {name} was already stopped"
         except Exception as e:
             logger.exception("Error stopping psutil process %s", name)

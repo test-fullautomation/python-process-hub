@@ -112,6 +112,8 @@ Sent by HubAgent with current server state from server.core.get_state_snapshot()
     connection_count: int = 0
     processes: list[str] = field(default_factory=list)
     connections: list[str] = field(default_factory=list)
+    configured_processes: list[str] = field(default_factory=list)
+    process_configs: dict = field(default_factory=dict)
     restart_state: str = ""
 
 
@@ -195,7 +197,9 @@ fleet state queries without holding locks.
     connection_count: int
     processes: tuple[str, ...]
     connections: tuple[str, ...]
-    last_seen: float
+    configured_processes: tuple[str, ...]
+    process_configs: dict = field(default_factory=dict)
+    last_seen: float = 0.0
     version: str = ""
 
 

@@ -303,12 +303,20 @@ Sends deregistration message and stops background loops.
         """Send a HubStatusReport with current server state."""
         try:
             snapshot = self._server.core.get_state_snapshot()
+            configured = []
+            configs = {}
+            if hasattr(self._server, "configured_process_names"):
+                configured = self._server.configured_process_names
+            if hasattr(self._server, "process_config"):
+                configs = self._server.process_config
             report = HubStatusReport(
                 hub_id=self._hub_id,
                 process_count=len(snapshot.processes),
                 connection_count=len(snapshot.connections),
                 processes=[p.name for p in snapshot.processes],
                 connections=[c.panel_id for c in snapshot.connections],
+                configured_processes=configured,
+                process_configs=configs,
                 restart_state=snapshot.restart_state,
             )
             self._transport.send(FleetTopics.HUB_STATUS_REPORT.value, self._serialize(report))
@@ -366,6 +374,12 @@ Only processes commands addressed to this hub.
             self._transport.send(
                 FleetTopics.FLEET_COMMAND_RESULT.value, self._serialize(result)
             )
+
+            # Send an immediate status report so the orchestrator (and GUI)
+            # gets the updated process state without waiting for the next
+            # scheduled interval.
+            if action in ("start_process", "stop_process", "reset"):
+                self._send_status_report()
 
         except Exception as e:
             logger.exception("Error handling fleet command: %s", action)

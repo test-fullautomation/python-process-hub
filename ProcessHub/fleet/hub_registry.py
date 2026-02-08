@@ -69,6 +69,8 @@ class _HubEntry:
     connection_count: int = 0
     processes: list[str] = field(default_factory=list)
     connections: list[str] = field(default_factory=list)
+    configured_processes: list[str] = field(default_factory=list)
+    process_configs: dict = field(default_factory=dict)
     last_seen: float = field(default_factory=time.time)
     registered_at: float = field(default_factory=time.time)
     version: str = ""
@@ -195,6 +197,10 @@ Update hub status from a HubStatusReport message.
             entry.connection_count = report.connection_count
             entry.processes = list(report.processes)
             entry.connections = list(report.connections)
+            if report.configured_processes:
+                entry.configured_processes = list(report.configured_processes)
+            if report.process_configs:
+                entry.process_configs = dict(report.process_configs)
             entry.restart_state = report.restart_state if hasattr(report, "restart_state") else ""
             entry.last_seen = time.time()
 
@@ -395,6 +401,8 @@ Consumers can read the snapshot without locks.
             connection_count=entry.connection_count,
             processes=tuple(entry.processes),
             connections=tuple(entry.connections),
+            configured_processes=tuple(entry.configured_processes),
+            process_configs=dict(entry.process_configs),
             last_seen=entry.last_seen,
             version=entry.version,
         )

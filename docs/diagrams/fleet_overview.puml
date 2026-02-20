@@ -23,18 +23,21 @@ rectangle "Fleet Transport" <<transport>> {
 
 rectangle "Hub PC 1" <<hub>> {
     rectangle "ProcessHubServer" as server1
+    rectangle "Local Transport\n(ZMQ/InMemory)" as local1
     rectangle "HubAgent\n(Sidecar)" as agent1
     rectangle "Managed Processes" as procs1
 }
 
 rectangle "Hub PC 2" <<hub>> {
     rectangle "ProcessHubServer" as server2
+    rectangle "Local Transport" as local2
     rectangle "HubAgent\n(Sidecar)" as agent2
     rectangle "Managed Processes" as procs2
 }
 
 rectangle "Hub PC N" <<hub>> {
     rectangle "ProcessHubServer" as serverN
+    rectangle "Local Transport" as localN
     rectangle "HubAgent\n(Sidecar)" as agentN
     rectangle "Managed Processes" as procsN
 }
@@ -60,9 +63,15 @@ agentN --> event_bus : heartbeat + status
 event_bus --> routing : routes via
 
 ' Hub internals
-agent1 --> server1 : public API
+agent1 --> server1 : public API\n(commands, snapshots)
 agent2 --> server2 : public API
 agentN --> serverN : public API
+server1 --> local1 : publishes\nSTART/STOP_RESPONSE
+server2 --> local2 : publishes
+serverN --> localN : publishes
+local1 --> agent1 : subscribes\n(event-driven updates)
+local2 --> agent2 : subscribes
+localN --> agentN : subscribes
 server1 --> procs1 : manages
 server2 --> procs2 : manages
 serverN --> procsN : manages
@@ -81,6 +90,8 @@ note right of orch
   - HubAgent uses only public APIs
   - Each hub works independently
   - Orchestrator is optional
+  - Event-driven via local transport
+    subscription (~0.5s latency)
 end note
 
 note bottom of event_bus
@@ -90,6 +101,14 @@ note bottom of event_bus
   fleet.FLEET_COMMAND_RESULT
   fleet.FLEET_HUB_ONLINE
   fleet.FLEET_HUB_OFFLINE
+end note
+
+note bottom of local1
+  **Local Topics (subscribed by agent):**
+  PROCESS_START_RESPONSE
+  PROCESS_STOP_RESPONSE
+  PROCESS_RESTART_NOTIFY
+  PROCESS_RESTART_DONE
 end note
 
 @enduml

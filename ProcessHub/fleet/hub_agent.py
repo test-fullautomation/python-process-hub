@@ -27,6 +27,9 @@
 # 06.02.2026 / V 1.1.0 / Nguyen Huynh Tri Cuong
 # - Initial fleet orchestrator implementation
 #
+# 18.02.2026 / V 1.2.0 / Nguyen Huynh Tri Cuong
+# - Add event-driven status updates via server_transport subscription
+#
 # *******************************************************************************
 """
 Hub agent - lightweight sidecar alongside each ProcessHubServer.
@@ -49,6 +52,7 @@ from dataclasses import asdict
 from typing import Any, Optional
 
 from ..core.models import ProcessStartRequest, ProcessStopRequest
+from ..runtime.server import Topics
 from ..transport.base import TransportBase
 from .models import (
     FleetCommand,
@@ -96,6 +100,7 @@ Usage:
         heartbeat_interval: float = 5.0,
         status_interval: float = 10.0,
         capabilities: Optional[list[str]] = None,
+        server_transport: Optional[TransportBase] = None,
     ):
         """
 Initialize the hub agent.
@@ -149,6 +154,15 @@ Initialize the hub agent.
   / *Condition*: optional / *Type*: Optional[list[str]] / *Default*: None /
 
   List of capability tags for this hub.
+
+* ``server_transport``
+
+  / *Condition*: optional / *Type*: Optional[TransportBase] / *Default*: None /
+
+  The server's local transport (e.g. ZMQ or InMemory) that carries
+  panel messages. When provided, the agent subscribes to local
+  state-change topics and sends immediate status reports to the
+  orchestrator, eliminating the delay of the periodic polling cycle.
         """
         self._server = server
         self._transport = transport
@@ -158,6 +172,9 @@ Initialize the hub agent.
         self._heartbeat_interval = heartbeat_interval
         self._status_interval = status_interval
         self._capabilities = capabilities or []
+        self._server_transport = server_transport
+        self._last_event_report: float = 0.0
+        self._event_debounce: float = 0.5
         self._running = False
         self._heartbeat_thread: Optional[threading.Thread] = None
         self._status_thread: Optional[threading.Thread] = None
@@ -194,6 +211,23 @@ and starts background heartbeat and status report loops.
             FleetTopics.FLEET_COMMAND.value,
             self._on_fleet_command,
         )
+
+        # Subscribe to local server transport for event-driven status updates
+        if self._server_transport is not None:
+            for topic in (
+                Topics.START_RESPONSE,
+                Topics.STOP_RESPONSE,
+                Topics.RESTART_NOTIFY,
+                Topics.RESTART_DONE,
+            ):
+                self._server_transport.register_handler(
+                    topic.value,
+                    self._on_local_state_change,
+                )
+            logger.info(
+                "HubAgent %s: subscribed to local transport for event-driven updates",
+                self._hub_id,
+            )
 
         # Send initial announcement
         self._send_announce()
@@ -322,6 +356,32 @@ Sends deregistration message and stops background loops.
             self._transport.send(FleetTopics.HUB_STATUS_REPORT.value, self._serialize(report))
         except Exception as e:
             logger.warning("Error collecting status: %s", e)
+
+    # ========================================================================
+    # Event-Driven Status Updates
+    # ========================================================================
+
+    def _on_local_state_change(self, data: Any) -> None:
+        """
+Handle local server state-change events.
+
+Called when the server's local transport publishes a process
+start/stop/restart message.  Sends an immediate status report
+to the orchestrator with a simple timestamp-based debounce to
+avoid flooding when multiple processes change at once.
+        """
+        now = time.time()
+        if now - self._last_event_report < self._event_debounce:
+            return
+
+        self._last_event_report = now
+        try:
+            self._send_status_report()
+            logger.debug(
+                "HubAgent %s: event-driven status report sent", self._hub_id
+            )
+        except Exception as e:
+            logger.warning("Error sending event-driven status report: %s", e)
 
     # ========================================================================
     # Command Handler

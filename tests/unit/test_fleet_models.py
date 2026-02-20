@@ -142,6 +142,7 @@ class TestFleetSnapshots:
             connection_count=1,
             processes=("worker_a", "worker_b"),
             connections=("panel_1",),
+            configured_processes=("worker_a", "worker_b"),
             last_seen=time.time(),
         )
         assert snap.hub_id == "bench-1"
@@ -161,6 +162,7 @@ class TestFleetSnapshots:
             connection_count=0,
             processes=(),
             connections=(),
+            configured_processes=(),
             last_seen=0.0,
         )
         assert isinstance(snap.processes, tuple)
@@ -176,6 +178,7 @@ class TestFleetSnapshots:
             connection_count=1,
             processes=("p1", "p2"),
             connections=("c1",),
+            configured_processes=("p1", "p2"),
             last_seen=time.time(),
         )
         snap = FleetStateSnapshot(

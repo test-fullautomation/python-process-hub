@@ -259,6 +259,7 @@ def run_agent(args):
         hub_name=args.hub_name or f"Hub {args.hub_id}",
         heartbeat_interval=args.heartbeat_interval,
         status_interval=args.status_interval,
+        server_transport=local_transport,
     )
     agent.start()
 

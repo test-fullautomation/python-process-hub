@@ -150,6 +150,7 @@ def main():
         hub_name="Test PC 1",
         heartbeat_interval=5.0,
         status_interval=10.0,
+        server_transport=local_transport_1,
     )
     agent_1.start()
 
@@ -160,6 +161,7 @@ def main():
         hub_name="Test PC 2",
         heartbeat_interval=5.0,
         status_interval=10.0,
+        server_transport=local_transport_2,
     )
     agent_2.start()
 

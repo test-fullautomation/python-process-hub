@@ -4,105 +4,202 @@ title Fleet Orchestrator - Component Diagram
 
 top to bottom direction
 
+' ============================================================================
+' Skin parameters
+' ============================================================================
+
+skinparam package {
+    BackgroundColor<<fleet>>     #E3F2FD
+    BorderColor<<fleet>>         #1565C0
+    BackgroundColor<<core>>      #E8F5E9
+    BorderColor<<core>>          #2E7D32
+    BackgroundColor<<runtime>>   #E8F5E9
+    BorderColor<<runtime>>       #388E3C
+    BackgroundColor<<transport>> #FFF3E0
+    BorderColor<<transport>>     #E65100
+    BackgroundColor<<web>>       #F3E5F5
+    BorderColor<<web>>           #7B1FA2
+    BackgroundColor<<client>>    #FFFDE7
+    BorderColor<<client>>        #F57F17
+    FontStyle bold
+}
+
 skinparam component {
-    BackgroundColor<<fleet>> #E8F4FD
-    BackgroundColor<<core>> #E8FDE8
-    BackgroundColor<<transport>> #FDF4E8
-    BackgroundColor<<web>> #F4E8FD
-    BackgroundColor<<client>> #FDFDE8
+    BackgroundColor<<orch>>      #BBDEFB
+    BorderColor<<orch>>          #1565C0
+    BackgroundColor<<agent>>     #C8E6C9
+    BorderColor<<agent>>         #2E7D32
+    BackgroundColor<<registry>>  #B3E5FC
+    BorderColor<<registry>>      #0277BD
+    BackgroundColor<<fclient>>   #FFF9C4
+    BorderColor<<fclient>>       #F9A825
+    BackgroundColor<<webapi>>    #E1BEE7
+    BorderColor<<webapi>>        #7B1FA2
+    BackgroundColor<<fmodel>>    #DCEDC8
+    BorderColor<<fmodel>>        #689F38
+    BackgroundColor<<server>>    #A5D6A7
+    BorderColor<<server>>        #388E3C
+    BackgroundColor<<coreapi>>   #C8E6C9
+    BorderColor<<coreapi>>       #2E7D32
+    BackgroundColor<<tbase>>     #FFE0B2
+    BorderColor<<tbase>>         #E65100
+    BackgroundColor<<timpl>>     #FFECB3
+    BorderColor<<timpl>>         #FF8F00
+    BackgroundColor<<webapp>>    #CE93D8
+    BorderColor<<webapp>>        #7B1FA2
 }
 
-package "process_hub" {
-
-    package "fleet" <<fleet>> {
-        component [FleetOrchestrator] as orchestrator
-        component [HubAgent] as hub_agent
-        component [FleetClient] as fleet_client
-        component [HubRegistry] as hub_registry
-        component [FleetWebAPI] as web_api
-        component [models] as fleet_models
-        component [topics] as fleet_topics
-
-        note bottom of orchestrator
-          Central coordinator
-          Hub discovery
-          Command routing
-          Health monitoring
-        end note
-
-        note bottom of hub_agent
-          Sidecar per hub
-          Heartbeat loop
-          Status report loop
-          Command handler
-        end note
-    }
-
-    package "core" <<core>> {
-        interface "ProcessHubCore" as core_api
-        component [ProcessRegistry] as proc_registry
-        component [models (MessageBase)] as core_models
-
-        note bottom of core_api
-          Existing public API
-          get_state_snapshot()
-          handle_start_request()
-          handle_stop_request()
-        end note
-    }
-
-    package "runtime" <<core>> {
-        component [ProcessHubServer] as server
-
-        note bottom of server
-          Existing server
-          Unmodified by fleet
-        end note
-    }
-
-    package "transport" <<transport>> {
-        interface "TransportBase" as transport_base
-        component [EventBusTransport] as eventbus
-        component [InMemoryTransport] as inmem
-
-        eventbus ..|> transport_base
-        inmem ..|> transport_base
-    }
-
-    package "web" <<web>> {
-        component [FastAPI App] as fastapi
-        component [Pydantic Models] as pydantic
-        component [HTML Dashboard] as dashboard
-    }
+skinparam arrow {
+    Color #546E7A
+    Thickness 1.5
 }
 
-' Fleet internal dependencies
-orchestrator --> hub_registry : manages
-orchestrator --> fleet_topics : uses
-orchestrator --> fleet_models : uses
-orchestrator --> transport_base : send/receive
+skinparam note {
+    BackgroundColor #FAFAFA
+    BorderColor #BDBDBD
+}
 
-hub_agent --> fleet_topics : uses
-hub_agent --> fleet_models : uses
-hub_agent --> transport_base : send/receive
+' ============================================================================
+' Top row: External Consumers + Web + Transport (infrastructure)
+' ============================================================================
 
-fleet_client --> orchestrator : delegates to
-fleet_client --> transport_base : event callbacks
+package "External Consumers" <<client>> {
+    component [CI/CD Scripts\n/ CLI] <<fclient>> as cli
+}
 
-web_api --> orchestrator : queries & commands
-web_api --> fastapi : creates routes
-web_api --> pydantic : request/response models
-web_api --> dashboard : renders
+package "web" <<web>> {
+    component [FastAPI App]      <<webapp>> as fastapi
+    component [Pydantic Models]  <<webapp>> as pydantic
+    component [HTML Dashboard]   <<webapp>> as dashboard
+}
 
-' Fleet -> Core (overlay, public API only)
-hub_agent --> server : attached to
-hub_agent --> core_api : uses public API
+package "transport" <<transport>> {
+    interface "TransportBase"    <<tbase>> as transport_base
+    component [EventBusTransport\n(RabbitMQ)] <<timpl>> as eventbus
+    component [InMemoryTransport]             <<timpl>> as inmem
 
+    eventbus  ..|> transport_base
+    inmem     ..|> transport_base
+}
+
+' ============================================================================
+' Middle row: Fleet layer
+' ============================================================================
+
+package "fleet" <<fleet>> {
+    component [FleetOrchestrator] <<orch>> as orchestrator
+    component [HubRegistry]       <<registry>> as hub_registry
+    component [HubAgent]          <<agent>> as hub_agent
+    component [FleetClient]       <<fclient>> as fleet_client
+    component [FleetWebAPI]       <<webapi>> as web_api
+    component [fleet.models]      <<fmodel>> as fleet_models
+    component [fleet.topics]      <<fmodel>> as fleet_topics
+}
+
+' ============================================================================
+' Bottom row: Core + Runtime (existing, unmodified)
+' ============================================================================
+
+package "core" <<core>> {
+    interface "ProcessHubCore" <<coreapi>> as core_api
+    component [ProcessRegistry]   <<coreapi>> as proc_registry
+    component [core.models\n(MessageBase)] <<fmodel>> as core_models
+}
+
+package "runtime" <<runtime>> {
+    component [ProcessHubServer] <<server>> as server
+}
+
+' ============================================================================
+' Layout hints  (top → bottom: infra → fleet → core)
+' ============================================================================
+
+transport -[hidden]down- fleet
+web       -[hidden]down- fleet
+fleet     -[hidden]down- core
+core      -[hidden]right- runtime
+
+' ============================================================================
+' External → Fleet
+' ============================================================================
+
+cli -down-> fleet_client              : uses
+fleet_client -down-> orchestrator     : delegates to
+fleet_client -down-> transport_base   : event callbacks
+
+' ============================================================================
+' Web → Fleet
+' ============================================================================
+
+web_api -up-> fastapi                 : creates routes
+web_api -up-> pydantic                : request / response
+web_api -up-> dashboard               : renders
+web_api -down-> orchestrator          : queries & commands
+
+' ============================================================================
+' Orchestrator connections
+' ============================================================================
+
+orchestrator --> hub_registry         : manages
+orchestrator --> fleet_topics         : uses
+orchestrator --> fleet_models         : uses
+orchestrator -up-> transport_base #1565C0 : send / receive\n(fleet transport)
+
+' ============================================================================
+' HubAgent connections
+' ============================================================================
+
+hub_agent --> fleet_topics            : uses
+hub_agent --> fleet_models            : uses
+hub_agent -up-> transport_base #1565C0 : send / receive\n(fleet transport)
+
+' Fleet → Core (overlay, public API only)
+hub_agent -down-> server #388E3C      : attached to
+hub_agent -down-> core_api #388E3C    : public API\n(snapshots, commands)
+
+' NEW: event-driven status via local transport subscription
+hub_agent ..up.> transport_base #E65100 : <b>subscribes</b>\nserver_transport\n(event-driven status)
+
+' ============================================================================
 ' Model inheritance
-fleet_models --> core_models : extends MessageBase
+' ============================================================================
 
-' Layout hints
-fleet -[hidden]down- core
-core -[hidden]down- transport
+fleet_models -down-> core_models #689F38 : extends\nMessageBase
+
+' ============================================================================
+' Notes
+' ============================================================================
+
+note right of orchestrator
+  **Central Coordinator**
+  Hub discovery & registration
+  Command routing & validation
+  Health monitoring (tick loop)
+end note
+
+note right of hub_agent
+  **Sidecar per Hub**
+  Heartbeat loop (5 s)
+  Status report loop (10 s)
+  Fleet command handler
+  ----
+  **NEW: Event-driven updates**
+  Subscribes to server's local
+  transport for immediate status
+  reports (~0.5 s debounce)
+end note
+
+note bottom of server
+  Existing server — **unmodified**.
+  Publishes START_RESPONSE,
+  STOP_RESPONSE, RESTART_NOTIFY,
+  RESTART_DONE on local transport.
+end note
+
+note bottom of transport_base
+  **Two transport instances per hub:**
+  1. Fleet transport (EventBus) — agent ↔ orchestrator
+  2. Local transport (ZMQ) — server ↔ panels & agent
+end note
 
 @enduml

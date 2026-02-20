@@ -1,0 +1,130 @@
+@startuml sequence_fleet_event_driven
+!theme plain
+skinparam sequenceMessageAlign center
+
+title Fleet Orchestrator - Event-Driven Status Updates
+
+participant "Panel\n(GUI/CLI)" as Panel #f5f5f5
+participant "ProcessHubServer" as Server #e3f2fd
+participant "HubCore" as Core #bbdefb
+participant "Local Transport\n(ZMQ/InMemory)" as Local #fff3e0
+participant "HubAgent\n(sidecar)" as Agent #e3f2fd
+participant "Fleet Transport\n(EventBus)" as Fleet #fff3e0
+participant "FleetOrchestrator" as Orch #e8f5e9
+participant "HubRegistry" as Reg #c8e6c9
+
+== Scenario 1: Panel starts a process (not via fleet) ==
+
+Panel -> Server : START_REQUEST {process_list: ["worker_a"]}
+Server -> Core : handle_start_request(ProcessStartRequest)
+Core --> Server : list[OutgoingMessage]
+
+Server -> Local : send_async(START_RESPONSE, {success, process_list})
+
+note over Local
+    Local transport delivers to
+    ALL registered handlers
+end note
+
+Local -> Panel : handler(START_RESPONSE)
+note right: Panel updates its UI
+
+Local -> Agent : **_on_local_state_change(data)**
+note right #ffffcc
+    NEW: HubAgent is subscribed
+    to local transport topics
+end note
+
+Agent -> Agent : debounce check:\ntime.time() - _last_event_report > 0.5s?
+Agent -> Core : get_state_snapshot()
+Core --> Agent : HubStateSnapshot
+
+Agent -> Fleet : send(HUB_STATUS_REPORT, {hub_id, processes, ...})
+Fleet -> Orch : _on_hub_status_report(data)
+Orch -> Reg : update_status(hub_id, report)
+note right #e8f5e9: Orchestrator knows\nimmediately!
+
+== Scenario 2: Panel stops a process ==
+
+Panel -> Server : STOP_REQUEST {process_list: ["worker_a"]}
+Server -> Core : handle_stop_request(ProcessStopRequest)
+Core --> Server : list[OutgoingMessage]
+Server -> Local : send_async(STOP_RESPONSE, {success, process_list})
+
+Local -> Panel : handler(STOP_RESPONSE)
+Local -> Agent : **_on_local_state_change(data)**
+
+Agent -> Agent : debounce check: OK
+Agent -> Core : get_state_snapshot()
+Core --> Agent : HubStateSnapshot
+Agent -> Fleet : send(HUB_STATUS_REPORT, ...)
+Fleet -> Orch : _on_hub_status_report(data)
+Orch -> Reg : update_status(hub_id, report)
+
+== Scenario 3: Process crashes → auto-restart ==
+
+Core -> Core : tick() detects dead process
+Core --> Server : OutgoingMessage(RESTART_NOTIFY)
+Server -> Local : send_async(RESTART_NOTIFY, {killed_processes})
+
+Local -> Panel : handler(RESTART_NOTIFY)
+Local -> Agent : **_on_local_state_change(data)**
+Agent -> Agent : debounce check: OK
+Agent -> Fleet : send(HUB_STATUS_REPORT, ...)
+Fleet -> Orch : _on_hub_status_report(data)
+Orch -> Reg : update_status(hub_id, report)
+note right #e8f5e9: Orchestrator sees crash\nbefore restart completes
+
+... restart in progress ...
+
+Core -> Core : restart completes
+Core --> Server : OutgoingMessage(RESTART_DONE)
+Server -> Local : send_async(RESTART_DONE, {success, restarted_processes})
+
+Local -> Panel : handler(RESTART_DONE)
+Local -> Agent : **_on_local_state_change(data)**
+Agent -> Agent : debounce check: OK
+Agent -> Fleet : send(HUB_STATUS_REPORT, ...)
+Fleet -> Orch : _on_hub_status_report(data)
+Orch -> Reg : update_status(hub_id, report)
+note right #e8f5e9: Orchestrator sees\nrestart completed
+
+== Scenario 4: Debounce - multiple rapid changes ==
+
+Panel -> Server : START_REQUEST {process_list: ["w1","w2","w3","w4","w5"]}
+Server -> Core : handle_start_request(...)
+Core --> Server : list[OutgoingMessage]
+Server -> Local : send_async(START_RESPONSE, ...)
+
+Local -> Agent : _on_local_state_change(data)
+Agent -> Agent : _last_event_report = now
+Agent -> Fleet : send(HUB_STATUS_REPORT, ...)
+note right #ffffcc: 1st event: report sent
+
+Panel -> Server : STOP_REQUEST {process_list: ["w1"]}
+Server -> Local : send_async(STOP_RESPONSE, ...)
+Local -> Agent : _on_local_state_change(data)
+Agent ->x Agent : debounce: < 0.5s elapsed, SKIP
+note right #ffcccc: Suppressed to\navoid flooding
+
+... 0.5 seconds pass ...
+
+Panel -> Server : STOP_REQUEST {process_list: ["w2"]}
+Server -> Local : send_async(STOP_RESPONSE, ...)
+Local -> Agent : _on_local_state_change(data)
+Agent -> Agent : debounce: >= 0.5s, OK
+Agent -> Fleet : send(HUB_STATUS_REPORT, ...)
+note right #ffffcc: Next report sent\nwith latest state
+
+== Before vs. After comparison ==
+
+note over Panel, Orch #f0f0f0
+    **BEFORE** (polling only):
+    Panel starts/stops process → orchestrator waits up to 10s (status_interval) to learn about it
+
+    **AFTER** (event-driven + polling):
+    Panel starts/stops process → orchestrator learns within ~0.5s (debounce window)
+    Polling still runs as a safety net for missed events
+end note
+
+@enduml

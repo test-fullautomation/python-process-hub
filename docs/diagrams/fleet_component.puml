@@ -170,14 +170,10 @@ fleet_models -down-> core_models #689F38 : extends\nMessageBase
 ' Notes
 ' ============================================================================
 
-note right of orchestrator
-  **Central Coordinator**
-  Hub discovery & registration
-  Command routing & validation
-  Health monitoring (tick loop)
-end note
+note "**Central Coordinator**\nHub discovery & registration\nCommand routing & validation\nHealth monitoring (tick loop)" as coord_note
+orchestrator -right- coord_note
 
-note right of hub_agent
+note bottom of hub_agent
   **Sidecar per Hub**
   Heartbeat loop (5 s)
   Status report loop (10 s)

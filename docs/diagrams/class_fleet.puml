@@ -1,0 +1,213 @@
+@startuml class_fleet
+!theme plain
+title Fleet Orchestrator - Class Diagram
+
+skinparam class {
+    BackgroundColor<<enum>> #FFFFCC
+    BackgroundColor<<dataclass>> #CCFFCC
+    BackgroundColor<<frozen>> #CCE5FF
+    BackgroundColor<<protocol>> #CCCCFF
+}
+
+package "fleet.topics" {
+
+    enum FleetTopics <<enum>> {
+        HUB_ANNOUNCE
+        HUB_REGISTERED
+        HUB_DEREGISTER
+        HUB_STATUS_REPORT
+        FLEET_STATUS_REQUEST
+        FLEET_STATUS_RESPONSE
+        FLEET_COMMAND
+        FLEET_COMMAND_RESULT
+        HUB_ONLINE
+        HUB_OFFLINE
+    }
+}
+
+package "fleet.models" {
+
+    abstract class MessageBase <<dataclass>> {
+        +version: str
+        +timestamp: float
+        +request_id: str
+    }
+
+    class HubAnnounce <<dataclass>> {
+        +hub_id: str
+        +hub_name: str
+        +host: str
+        +capabilities: list[str]
+    }
+
+    class HubRegistered <<dataclass>> {
+        +hub_id: str
+        +success: bool
+        +message: str
+        +fleet_id: str
+    }
+
+    class HubDeregistered <<dataclass>> {
+        +hub_id: str
+        +reason: str
+    }
+
+    class HubStatusReport <<dataclass>> {
+        +hub_id: str
+        +process_count: int
+        +connection_count: int
+        +processes: list[str]
+        +connections: list[str]
+        +restart_state: str
+    }
+
+    class FleetCommand <<dataclass>> {
+        +command_id: str
+        +hub_id: str
+        +action: str
+        +params: dict
+    }
+
+    class FleetCommandResult <<dataclass>> {
+        +command_id: str
+        +hub_id: str
+        +success: bool
+        +message: str
+        +data: dict
+    }
+
+    class HubSnapshot <<frozen>> {
+        +hub_id: str
+        +hub_name: str
+        +host: str
+        +status: str
+        +process_count: int
+        +connection_count: int
+        +processes: tuple[str, ...]
+        +connections: tuple[str, ...]
+        +last_seen: float
+    }
+
+    class FleetStateSnapshot <<frozen>> {
+        +hubs: tuple[HubSnapshot, ...]
+        +total_hubs: int
+        +online_hubs: int
+        +total_processes: int
+        +timestamp: float
+    }
+
+    HubAnnounce --|> MessageBase
+    HubRegistered --|> MessageBase
+    HubDeregistered --|> MessageBase
+    HubStatusReport --|> MessageBase
+    FleetCommand --|> MessageBase
+    FleetCommandResult --|> MessageBase
+
+    FleetStateSnapshot --> HubSnapshot : contains
+}
+
+package "fleet.hub_registry" {
+
+    class _HubEntry <<dataclass>> {
+        -hub_id: str
+        -hub_name: str
+        -host: str
+        -status: str
+        -process_count: int
+        -connection_count: int
+        -last_seen: float
+    }
+
+    class HubRegistry {
+        -_hubs: dict[str, _HubEntry]
+        -_lock: threading.Lock
+        +register(hub_id, info): bool
+        +deregister(hub_id): bool
+        +update_status(hub_id, report): void
+        +update_heartbeat(hub_id): void
+        +get_hub(hub_id): Optional[HubSnapshot]
+        +get_all_hubs(): list[HubSnapshot]
+        +get_online_hubs(): list[HubSnapshot]
+        +check_health(timeout): list[str]
+        +get_snapshot(): FleetStateSnapshot
+        +hub_count: int
+    }
+
+    HubRegistry --> _HubEntry : manages
+    HubRegistry --> HubSnapshot : produces
+    HubRegistry --> FleetStateSnapshot : produces
+}
+
+package "fleet.orchestrator" {
+
+    class FleetOrchestrator {
+        -_transport: TransportBase
+        -_registry: HubRegistry
+        -_health_timeout: float
+        -_running: bool
+        +start(): void
+        +stop(): void
+        +tick(): void
+        +send_command(hub_id, action, params): str
+        +get_fleet_snapshot(): FleetStateSnapshot
+        +get_hub_snapshot(hub_id): Optional[HubSnapshot]
+        -_on_hub_announce(data): void
+        -_on_hub_deregister(data): void
+        -_on_hub_status_report(data): void
+    }
+
+    FleetOrchestrator --> HubRegistry : uses
+    FleetOrchestrator --> FleetTopics : uses
+}
+
+package "fleet.hub_agent" {
+
+    class HubAgent {
+        -_server: ProcessHubServer
+        -_transport: TransportBase
+        -_hub_id: str
+        -_hub_name: str
+        -_running: bool
+        -_heartbeat_thread: Thread
+        -_status_thread: Thread
+        +start(): void
+        +stop(): void
+        +hub_id: str
+        +hub_name: str
+        +is_running: bool
+        -_heartbeat_loop(): void
+        -_status_loop(): void
+        -_send_announce(): void
+        -_send_status_report(): void
+        -_on_fleet_command(data): void
+        -_handle_start_process(params): FleetCommandResult
+        -_handle_stop_process(params): FleetCommandResult
+        -_handle_reset(): FleetCommandResult
+        -_handle_get_status(): FleetCommandResult
+    }
+
+    HubAgent --> FleetTopics : uses
+}
+
+package "fleet.fleet_client" {
+
+    class FleetClient {
+        -_transport: TransportBase
+        -_orchestrator: FleetOrchestrator
+        +get_fleet_status(): FleetStateSnapshot
+        +get_hub_status(hub_id): Optional[HubSnapshot]
+        +start_processes(hub_id, list): str
+        +stop_processes(hub_id, list): str
+        +reset_hub(hub_id): str
+        +get_hub_detail(hub_id): str
+        +start_on_all_hubs(list): dict
+        +stop_all_processes(): dict
+        +reset_all_hubs(): dict
+        +on_hub_online(callback): void
+        +on_hub_offline(callback): void
+    }
+
+    FleetClient --> FleetOrchestrator : delegates
+}
+
+@enduml

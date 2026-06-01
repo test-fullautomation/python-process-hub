@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ProcessHub"
-version = "1.0.0"
+version = "1.1.0"
 description = "Process lifecycle management hub with ZMQ-based coordination"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -44,6 +44,10 @@ web = [
     "fastapi>=0.100.0",
     "uvicorn>=0.20.0",
 ]
+fleet = [
+    "fastapi>=0.100.0",
+    "uvicorn>=0.20.0",
+]
 dev = [
     "pytest>=7.0.0",
     "pytest-asyncio>=0.21.0",
@@ -53,7 +57,7 @@ dev = [
     "colorama>=0.4.0",
 ]
 all = [
-    "python-process-hub[zmq,eventbus,web,dev]",
+    "python-process-hub[zmq,eventbus,web,fleet,dev]",
 ]
 
 [project.urls]

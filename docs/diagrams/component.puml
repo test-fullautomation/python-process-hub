@@ -2,135 +2,212 @@
 !theme plain
 title Process Hub - Component Diagram
 
-top to bottom direction
+' ============================================================================
+' Color scheme
+' ============================================================================
+
+skinparam ranksep 40
+skinparam nodesep 20
+
+skinparam package {
+    BackgroundColor<<runtime>>   #FFF3E0
+    BorderColor<<runtime>>       #E65100
+    BackgroundColor<<core>>      #E3F2FD
+    BorderColor<<core>>          #1565C0
+    BackgroundColor<<transport>> #E8F5E9
+    BorderColor<<transport>>     #2E7D32
+    BackgroundColor<<process>>   #FCE4EC
+    BorderColor<<process>>       #AD1457
+    BackgroundColor<<config>>    #F3E5F5
+    BorderColor<<config>>        #7B1FA2
+    BackgroundColor<<logging>>   #F1F8E9
+    BorderColor<<logging>>       #558B2F
+    BackgroundColor<<ui>>        #E8EAF6
+    BorderColor<<ui>>            #283593
+    FontStyle bold
+}
 
 skinparam component {
-    BackgroundColor<<core>> #E8F4FD
-    BackgroundColor<<runtime>> #FDF4E8
-    BackgroundColor<<transport>> #E8FDF4
-    BackgroundColor<<process>> #FDE8F4
-    BackgroundColor<<config>> #F4E8FD
-    BackgroundColor<<logging>> #F4FDE8
-    BackgroundColor<<ui>> #E8E8FD
+    BackgroundColor<<rt>>   #FFE0B2
+    BorderColor<<rt>>       #E65100
+    BackgroundColor<<cr>>   #BBDEFB
+    BorderColor<<cr>>       #1565C0
+    BackgroundColor<<tp>>   #C8E6C9
+    BorderColor<<tp>>       #2E7D32
+    BackgroundColor<<pr>>   #F8BBD0
+    BorderColor<<pr>>       #AD1457
+    BackgroundColor<<cf>>   #E1BEE7
+    BorderColor<<cf>>       #7B1FA2
+    BackgroundColor<<lg>>   #DCEDC8
+    BorderColor<<lg>>       #558B2F
+    BackgroundColor<<uic>>  #C5CAE9
+    BorderColor<<uic>>      #283593
 }
 
-package "process_hub" {
-
-    package "runtime" <<runtime>> {
-        component [ProcessHubServer] as server
-        component [ProcessHubClient] as client
-        component [ClientController] as controller
-
-        note bottom of server
-          Thin wrapper
-          Transport wiring
-          Main loop
-        end note
-    }
-
-    package "core" <<core>> {
-        component [ProcessHubCore] as core_hub
-        component [ProcessRegistry] as registry
-        component [RestartStateMachine] as restart_fsm
-        component [models] as models
-
-        note bottom of core_hub
-          Business logic
-          Message handling
-          Health monitoring
-        end note
-    }
-
-    package "transport" <<transport>> {
-        interface "TransportBase" as transport_base
-        component [ZmqTransport] as zmq
-        component [ZmqBroker] as broker
-        component [ZmqAsyncClient] as zmq_client
-        component [InMemoryTransport] as inmem
-
-        zmq ..|> transport_base
-        inmem ..|> transport_base
-        zmq --> broker : uses
-        zmq --> zmq_client : uses
-    }
-
-    package "process" <<process>> {
-        interface "ProcessExecutor" as executor_if
-        component [SimpleExecutor] as simple_exec
-        component [MockExecutor] as mock_exec
-        component [ProcessManager] as proc_mgr
-        component [PlatformExecutor] as platform_exec
-
-        simple_exec ..|> executor_if
-        mock_exec ..|> executor_if
-
-        package "platform" {
-            component [WindowsExecutor] as win_exec
-            component [UnixExecutor] as unix_exec
-        }
-
-        win_exec --|> platform_exec
-        unix_exec --|> platform_exec
-    }
-
-    package "config" <<config>> {
-        component [ConfigLoader] as config_loader
-        component [schemas] as schemas
-
-        config_loader --> schemas : validates
-    }
-
-    package "logging" <<logging>> {
-        component [LoggingIntegration] as log_int
-        component [LoggingAwareExecutor] as log_exec
-        component [MockLoggingServer] as mock_log
-
-        log_exec --> executor_if : wraps
-        log_int --> mock_log : can use
-    }
-
-    package "ui" <<ui>> {
-        interface "HubView" as view_if
-        component [ConsoleView] as console
-        component [WebView] as webview
-        component [NullView] as null_view
-
-        console ..|> view_if
-        webview ..|> view_if
-        null_view ..|> view_if
-
-        note bottom of webview
-          FastAPI dashboard
-          REST API
-          Console logs
-        end note
-    }
+skinparam interface {
+    BackgroundColor #FAFAFA
+    BorderColor #757575
 }
 
-' Vertical layout hints
-runtime -[hidden]down- core
-core -[hidden]down- transport
-core -[hidden]down- process
-core -[hidden]down- ui
-transport -[hidden]down- config
-process -[hidden]down- logging
+skinparam arrow {
+    Color #546E7A
+    Thickness 1.5
+}
 
-' Dependencies between packages
-server --> core_hub : delegates to
-server --> transport_base : uses
-server --> executor_if : uses
-server --> view_if : renders to
+skinparam note {
+    BackgroundColor #FAFAFA
+    BorderColor #BDBDBD
+}
 
-client --> transport_base : uses
-client --> controller : dispatches to
+' ============================================================================
+' Row 1: transport + ui  (interfaces)
+' ============================================================================
 
-core_hub --> registry : manages
-core_hub --> restart_fsm : coordinates
-core_hub --> models : uses
+package "transport" <<transport>> {
+    interface "TransportBase" as transport_base
+    component [ZmqTransport]      <<tp>> as zmq
+    component [ZmqBroker]         <<tp>> as broker
+    component [ZmqAsyncClient]    <<tp>> as zmq_client
+    component [InMemoryTransport] <<tp>> as inmem
 
-proc_mgr --> executor_if : uses
-proc_mgr --> registry : tracks
+    zmq .up.|> transport_base
+    inmem .up.|> transport_base
+    zmq --> broker : uses
+    zmq --> zmq_client : uses
+}
 
-log_int --> log_exec : provides
+package "ui" <<ui>> {
+    interface "HubView" as view_if
+    component [ConsoleView] <<uic>> as console
+    component [WebView]     <<uic>> as webview
+    component [NullView]    <<uic>> as null_view
+
+    console ..|> view_if
+    webview ..|> view_if
+    null_view ..|> view_if
+}
+
+' ============================================================================
+' Row 2: runtime  (entry point)
+' ============================================================================
+
+package "runtime" <<runtime>> {
+    component [ProcessHubServer]  <<rt>> as server
+    component [ProcessHubClient]  <<rt>> as client
+    component [ClientController]  <<rt>> as controller
+}
+
+' ============================================================================
+' Row 3: core + process  (business logic + execution)
+' ============================================================================
+
+package "core" <<core>> {
+    component [ProcessHubCore]      <<cr>> as core_hub
+    component [ProcessRegistry]     <<cr>> as registry
+    component [RestartStateMachine] <<cr>> as restart_fsm
+    component [models]              <<cr>> as models
+}
+
+package "process" <<process>> {
+    interface "ProcessExecutor" as executor_if
+    component [ProcessManager]   <<pr>> as proc_mgr
+    component [SimpleExecutor]   <<pr>> as simple_exec
+    component [MockExecutor]     <<pr>> as mock_exec
+    component [PlatformExecutor] <<pr>> as platform_exec
+
+    simple_exec ..|> executor_if
+    mock_exec ..|> executor_if
+
+    note bottom of platform_exec
+      WindowsExecutor
+      UnixExecutor
+    end note
+}
+
+' ============================================================================
+' Row 4: config + logging  (support)
+' ============================================================================
+
+package "config" <<config>> {
+    component [ConfigLoader] <<cf>> as config_loader
+    component [schemas]      <<cf>> as schemas
+    config_loader --> schemas : validates
+}
+
+package "logging" <<logging>> {
+    component [LoggingIntegration]   <<lg>> as log_int
+    component [LoggingAwareExecutor] <<lg>> as log_exec
+    component [MockLoggingServer]    <<lg>> as mock_log
+    log_int --> mock_log : can use
+}
+
+' ============================================================================
+' Layout control
+'
+'   transport  |  ui             ← Row 1
+'        runtime                 ← Row 2
+'     core  |  process           ← Row 3
+'    config  |  logging          ← Row 4
+'
+' Use long-form down arrows (---->) for strong vertical pull
+' ============================================================================
+
+transport -[hidden]right- ui
+transport --[hidden]down-- runtime
+ui        --[hidden]down-- runtime
+runtime   --[hidden]down-- core
+runtime   --[hidden]down-- process
+core      --[hidden]down-- config
+process   --[hidden]down-- logging
+
+' ============================================================================
+' Cross-package dependencies
+' (use --- long arrows to reinforce vertical layout)
+' ============================================================================
+
+' runtime → transport / ui (UP to row 1)
+server -up-> transport_base #2E7D32  : uses
+client -up-> transport_base #2E7D32  : uses
+server -up-> view_if #283593         : renders to
+
+' runtime → core / process (DOWN to row 3)
+server -down-> core_hub #E65100      : delegates to
+server -down-> executor_if #AD1457   : uses
+client -down-> controller #E65100    : dispatches to
+
+' core internals
+core_hub --> registry #1565C0        : manages
+core_hub --> restart_fsm #1565C0     : coordinates
+core_hub --> models #1565C0          : uses
+
+' process → core
+proc_mgr --> executor_if #AD1457     : uses
+proc_mgr --> registry #1565C0        : tracks
+
+' logging → process
+log_int --> log_exec #558B2F         : provides
+log_exec ..> executor_if #AD1457     : wraps
+
+' ============================================================================
+' Notes
+' ============================================================================
+
+note right of server
+  **Entry Point**
+  Thin wrapper
+  Transport wiring
+  Main loop
+end note
+
+note top of core_hub
+  **Business Logic**
+  Message handling
+  Health monitoring
+end note
+
+note bottom of webview
+  FastAPI dashboard
+  REST API
+end note
 
 @enduml

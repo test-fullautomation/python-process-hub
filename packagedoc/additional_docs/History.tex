@@ -18,6 +18,74 @@
 
 \section{History}
 
+\subsection{Version 1.1.0 - 06.02.2026}
+
+Fleet Orchestrator -- multi-hub coordination overlay for managing multiple ProcessHub instances
+across PCs from a central point.
+
+\subsubsection{New Features}
+
+\begin{itemize}
+   \item \textbf{Fleet Orchestrator}: Central coordinator for hub discovery, health monitoring,
+         and command routing across distributed ProcessHub instances
+   \item \textbf{Hub Agent}: Lightweight sidecar alongside each ProcessHubServer that sends
+         heartbeats, status reports, and handles fleet commands via the server's public API
+   \item \textbf{Hub Registry}: Thread-safe registry with health state transitions
+         (online $\rightarrow$ degraded $\rightarrow$ offline) based on heartbeat timeouts
+   \item \textbf{Fleet Client}: High-level API for CI/CD pipelines and CLI tools, supporting
+         single-hub commands and batch operations (start/stop/reset across all hubs)
+   \item \textbf{Fleet Web API}: Optional REST API and HTML dashboard for fleet monitoring
+         (FastAPI-based, served at configurable host/port)
+   \item \textbf{Fleet Protocol Messages}: Typed dataclass messages extending MessageBase --
+         HubAnnounce, HubRegistered, HubDeregistered, HubStatusReport, FleetCommand,
+         FleetCommandResult, FleetStatusRequest, FleetStatusResponse
+   \item \textbf{Fleet State Snapshots}: Frozen dataclasses (HubSnapshot, FleetStateSnapshot)
+         with tuples for thread-safe concurrent access
+   \item \textbf{Fleet Topics}: FleetTopics enum with FLEET\_ prefix for EventBus routing
+         key separation from local hub topics
+   \item \textbf{Event Callbacks}: FleetClient supports on\_hub\_online and on\_hub\_offline
+         callbacks for reactive fleet monitoring
+\end{itemize}
+
+\subsubsection{Architecture}
+
+\begin{itemize}
+   \item Fleet is a pure \textbf{overlay} -- no modifications to core/, runtime/, or transport/ modules
+   \item Each local ProcessHub works independently; the orchestrator is optional
+   \item HubAgent uses only the server's public API (get\_state\_snapshot, handle\_start\_request,
+         handle\_stop\_request, reset)
+   \item Communication uses EventBus (RabbitMQ) with \texttt{fleet.*} routing key prefix in production,
+         InMemoryTransport for testing
+\end{itemize}
+
+\subsubsection{Documentation}
+
+\begin{itemize}
+   \item Fleet Orchestrator plan document (\texttt{docs/FLEET\_ORCHESTRATOR.md})
+   \item Architecture Decision Records: ADR-017 (Overlay Pattern), ADR-018 (Heartbeat Health),
+         ADR-019 (Command Routing), ADR-020 (Frozen Snapshots)
+   \item PlantUML diagrams: fleet\_overview, fleet\_component, class\_fleet,
+         sequence\_fleet\_discovery, sequence\_fleet\_command, state\_hub\_health
+   \item Examples: 12\_fleet\_basic, 13\_fleet\_ci\_integration, 14\_fleet\_web\_dashboard
+\end{itemize}
+
+\subsubsection{Installation}
+
+\begin{itemize}
+   \item Added \texttt{fleet} optional dependency group: \texttt{pip install python-process-hub[fleet]}
+   \item Fleet web API requires FastAPI and uvicorn
+   \item Optional imports with \texttt{HAS\_FLEET} flag in ProcessHub.\_\_init\_\_
+\end{itemize}
+
+\subsubsection{Tests}
+
+\begin{itemize}
+   \item 76 new fleet tests across 5 test files (models, hub\_registry, hub\_agent,
+         orchestrator, fleet\_client)
+   \item All tests use InMemoryTransport -- no external dependencies required
+   \item Total test count: 183 tests (107 existing + 76 fleet)
+\end{itemize}
+
 \subsection{Version 1.0.0 - 15.01.2026}
 
 Initial release of ProcessHub as an independent package.

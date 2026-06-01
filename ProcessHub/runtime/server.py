@@ -668,6 +668,26 @@ Get the core instance (for testing/introspection).
         return self._core
 
     @property
+    def configured_process_names(self) -> list[str]:
+        """
+Get the list of configured process names.
+
+Returns all process names from the process_config dict,
+regardless of whether they are currently running.
+        """
+        return list(self._config.keys())
+
+    @property
+    def process_config(self) -> dict[str, dict]:
+        """
+Get the full process configuration dict.
+
+Returns the mapping of process name to config dict, containing
+fields like script, args, env, wait_time, description, etc.
+        """
+        return dict(self._config)
+
+    @property
     def is_running(self) -> bool:
         """
 Check if server is running.

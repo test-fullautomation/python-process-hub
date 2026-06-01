@@ -51,6 +51,7 @@ ProcessHub centralizes all process management into a single, reliable hub:
 - **Pluggable Transport** - ZMQ for local networks, RabbitMQ for enterprise, in-memory for testing
 - **Web Dashboard** - Real-time browser-based monitoring with REST API
 - **Admin API** - Remote process control, configuration management, and hub reset
+- **Fleet Orchestrator** - Coordinate multiple ProcessHub instances across PCs from a central point
 - **Platform Support** - Works on Windows and Linux/Unix
 
 ## Real-World Scenarios
@@ -241,8 +242,11 @@ pip install python-process-hub[zmq]
 # With web dashboard
 pip install python-process-hub[web]
 
+# With fleet orchestrator (multi-hub coordination)
+pip install python-process-hub[fleet]
+
 # All optional dependencies
-pip install python-process-hub[zmq,web]
+pip install python-process-hub[zmq,web,fleet]
 
 # From source
 git clone https://github.com/test-fullautomation/python-process-hub.git
@@ -384,6 +388,9 @@ from ProcessHub.ui import WebView
 # EventBusTransport requires EventBusClient package
 from ProcessHub.transport import EventBusTransport, EventBusConfig
 
+# Fleet orchestrator (requires: pip install fastapi uvicorn)
+from ProcessHub import FleetOrchestrator, HubAgent, FleetClient, FleetTopics
+
 # Version info
 from ProcessHub import __version__, __version_date__
 ```
@@ -516,6 +523,105 @@ client.controller.connect("restart_notify", on_restart_notify)
 client.controller.connect("restart_done", on_restart_done)
 ```
 
+## Fleet Orchestrator
+
+ProcessHub includes an optional **Fleet Orchestrator** for coordinating multiple ProcessHub instances across different PCs from a central point. The fleet layer is a pure overlay - it does not modify the core, runtime, or transport modules.
+
+```
+                        ┌──────────────────┐
+                        │ FleetOrchestrator│
+                        │  (Central PC)    │
+                        │  + HubRegistry   │
+                        │  + FleetWebAPI   │
+                        └────────┬─────────┘
+                                 │
+                    ┌────────────┼────────────┐
+                    │   EventBus (RabbitMQ)    │
+                    │   fleet.* routing keys   │
+                    └────┬───────┬───────┬────┘
+                         │       │       │
+               ┌─────────▼┐ ┌───▼─────┐ ┌▼─────────┐
+               │ Hub PC 1  │ │ Hub PC 2│ │ Hub PC N  │
+               │ HubAgent  │ │ HubAgent│ │ HubAgent  │
+               │ + Server  │ │ + Server│ │ + Server  │
+               └───────────┘ └─────────┘ └───────────┘
+```
+
+### Key Concepts
+
+- **FleetOrchestrator** - Central coordinator that discovers hubs, monitors health, and routes commands
+- **HubAgent** - Lightweight sidecar that runs alongside each ProcessHubServer (heartbeats, status reports, command handling)
+- **HubRegistry** - Thread-safe tracking of all hubs with health state transitions (online -> degraded -> offline)
+- **FleetClient** - High-level API for CI/CD pipelines, CLI tools, and scripts
+- **FleetWebAPI** - Optional REST API + web dashboard for fleet monitoring
+
+### Quick Start
+
+```python
+from ProcessHub.fleet import FleetOrchestrator, HubAgent, FleetClient
+from ProcessHub.transport.inmemory_transport import InMemoryTransport
+
+# --- Central PC: Start orchestrator ---
+fleet_transport = InMemoryTransport()
+fleet_transport.start()
+
+orchestrator = FleetOrchestrator(transport=fleet_transport, health_timeout=30.0)
+orchestrator.start()
+
+# --- Hub PC: Attach agent to existing server ---
+agent = HubAgent(
+    server=my_server,            # existing ProcessHubServer
+    transport=fleet_transport,
+    hub_id="bench-1",
+    hub_name="HIL Bench 1",
+)
+agent.start()  # Sends heartbeats and status reports automatically
+
+# --- CI/CD: Use FleetClient ---
+client = FleetClient(transport=fleet_transport, orchestrator=orchestrator)
+
+# Check fleet health
+snapshot = client.get_fleet_status()
+print(f"Online hubs: {snapshot.online_hubs}/{snapshot.total_hubs}")
+
+# Start processes on a specific hub
+client.start_processes("bench-1", ["ecu_simulator", "can_bridge"])
+
+# Batch operations across all online hubs
+client.start_on_all_hubs(["data_logger"])
+client.reset_all_hubs()
+```
+
+### Fleet Web Dashboard
+
+```python
+from ProcessHub.fleet.web_api import FleetWebAPI
+
+web = FleetWebAPI(orchestrator=orchestrator, host="0.0.0.0", port=2510)
+web.start()
+# Dashboard at http://localhost:2510
+# Swagger docs at http://localhost:2510/docs
+```
+
+### Fleet REST API
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/fleet/status` | GET | Fleet-wide status snapshot |
+| `/api/fleet/hubs` | GET | List all registered hubs |
+| `/api/fleet/hubs/{hub_id}` | GET | Single hub details |
+| `/api/fleet/command` | POST | Send command to a hub |
+| `/api/fleet/hubs/{hub_id}/start` | POST | Start processes on a hub |
+| `/api/fleet/hubs/{hub_id}/stop` | POST | Stop processes on a hub |
+| `/api/fleet/hubs/{hub_id}/reset` | POST | Reset a hub |
+
+For detailed architecture and design decisions, see:
+- [Fleet Orchestrator Plan](docs/FLEET_ORCHESTRATOR.md)
+- [ADR-017: Fleet Orchestrator Overlay Pattern](docs/adr/017-fleet-orchestrator-overlay-pattern.md)
+- [ADR-018: Heartbeat-Based Hub Health Detection](docs/adr/018-heartbeat-based-hub-health-detection.md)
+- [ADR-019: Fleet Command Routing Through Orchestrator](docs/adr/019-fleet-command-routing-through-orchestrator.md)
+- [ADR-020: Fleet Frozen State Snapshots](docs/adr/020-fleet-frozen-state-snapshots.md)
+
 ## Process Configuration
 
 Define processes with various options:
@@ -569,6 +675,11 @@ view = WebView(
 ProcessHub follows clean architecture principles:
 
 ```
+┌─────────────────────────────────────────────────────────────┐
+│               Fleet Orchestrator Layer (optional)            │
+│  FleetOrchestrator │ HubAgent │ FleetClient │ FleetWebAPI   │
+└─────────────────────────────────────────────────────────────┘
+                              │
 ┌─────────────────────────────────────────────────────────────┐
 │                        UI Layer                             │
 │     ConsoleView  │  WebView  │  NullView  │  Custom...      │
@@ -642,12 +753,21 @@ python-process-hub/
 │   ├── logging/              # Logging server integration
 │   │   └── integration.py    # Fluentbit/Telegraf support
 │   │
+│   ├── fleet/                # Fleet orchestrator overlay (optional)
+│   │   ├── models.py         # Fleet protocol messages & snapshots
+│   │   ├── topics.py         # FleetTopics enum
+│   │   ├── hub_registry.py   # Thread-safe hub tracking
+│   │   ├── hub_agent.py      # Sidecar for ProcessHubServer
+│   │   ├── orchestrator.py   # Central coordinator
+│   │   ├── fleet_client.py   # External API for CI/CLI
+│   │   └── web_api.py        # REST API + web dashboard
+│   │
 │   └── runtime/              # Server/Client wiring
 │       ├── server.py
 │       ├── client.py
 │       └── client_controller.py
 │
-├── examples/                 # Example scripts (01-11)
+├── examples/                 # Example scripts (01-14)
 ├── tests/                    # Unit and integration tests
 ├── docs/
 │   ├── adr/                  # Architecture Decision Records
@@ -671,6 +791,12 @@ Architecture and design diagrams are available in the `docs/diagrams/` folder in
 | **Restart State** | `state_restart.puml` | Restart state machine diagram |
 | **Restart Flow** | `sequence_restart_flow.puml` | Restart coordination sequence |
 | **Basic Flow** | `sequence_basic.puml` | Basic client-server operations |
+| **Fleet Overview** | `fleet_overview.puml` | Fleet system overview with orchestrator, hubs, and clients |
+| **Fleet Component** | `fleet_component.puml` | Fleet component diagram with module dependencies |
+| **Fleet Classes** | `class_fleet.puml` | Fleet models, registry, orchestrator, agent, client classes |
+| **Fleet Discovery** | `sequence_fleet_discovery.puml` | Hub discovery, heartbeat, and deregistration sequence |
+| **Fleet Commands** | `sequence_fleet_command.puml` | Command routing from client through orchestrator to hub |
+| **Hub Health State** | `state_hub_health.puml` | Hub health state machine (online/degraded/offline) |
 
 ### Rendering Diagrams
 
@@ -699,6 +825,9 @@ The `examples/` directory contains complete working examples:
 | `09_logging_integration.py` | Centralized logging (Fluentbit) |
 | `10_admin_dashboard.py` | Full admin API with config management |
 | `11_eventbus_transport.py` | RabbitMQ-based transport |
+| `12_fleet_basic.py` | Basic fleet orchestrator with two hub agents |
+| `13_fleet_ci_integration.py` | Fleet integration in CI/CD pipelines |
+| `14_fleet_web_dashboard.py` | Fleet web dashboard with EventBus transport |
 
 ## Testing
 
@@ -753,6 +882,10 @@ Design decisions are documented in `docs/adr/`:
 | ADR-009 | TCP Keepalive for Connection Health Monitoring | Accepted |
 | ADR-010 | Server Shutdown Notification Protocol | Accepted |
 | ADR-011 | Hub Reset Without Server Restart | Accepted |
+| ADR-017 | Fleet Orchestrator Overlay Pattern | Accepted |
+| ADR-018 | Heartbeat-Based Hub Health Detection | Accepted |
+| ADR-019 | Fleet Command Routing Through Orchestrator | Accepted |
+| ADR-020 | Fleet Frozen State Snapshots | Accepted |
 
 ## Feedback
 

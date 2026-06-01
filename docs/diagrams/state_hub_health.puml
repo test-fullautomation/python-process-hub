@@ -1,0 +1,73 @@
+@startuml state_hub_health
+!theme plain
+title Hub Health State Machine
+
+skinparam state {
+    BackgroundColor<<healthy>> #E8FDE8
+    BackgroundColor<<warning>> #FDFDE8
+    BackgroundColor<<critical>> #FDE8E8
+    BackgroundColor<<new>> #E8E8FD
+}
+
+[*] --> UNREGISTERED
+
+state UNREGISTERED <<new>>
+state ONLINE <<healthy>>
+state DEGRADED <<warning>>
+state OFFLINE <<critical>>
+
+UNREGISTERED --> ONLINE : HubAnnounce received\n[registry.register()]
+
+ONLINE --> DEGRADED : check_health()\n[elapsed > timeout/2]
+ONLINE --> ONLINE : HubAnnounce received\n[update_heartbeat()]
+
+DEGRADED --> ONLINE : HubAnnounce received\n[update_heartbeat()]
+DEGRADED --> OFFLINE : check_health()\n[elapsed > timeout]
+
+OFFLINE --> ONLINE : HubAnnounce received\n[register() with status recovery]
+OFFLINE --> [*] : HubDeregister received\n[registry.deregister()]
+
+ONLINE --> [*] : HubDeregister received\n[registry.deregister()]
+DEGRADED --> [*] : HubDeregister received\n[registry.deregister()]
+
+ONLINE : Heartbeat within timeout/2
+ONLINE : Hub fully responsive
+ONLINE : Status reports received
+
+DEGRADED : Heartbeat missed (timeout/2 < elapsed < timeout)
+DEGRADED : Hub may be experiencing issues
+DEGRADED : Awaiting next heartbeat
+
+OFFLINE : Heartbeat exceeded timeout
+OFFLINE : HUB_OFFLINE broadcast sent
+OFFLINE : Commands rejected (ValueError)
+
+note right of ONLINE
+  **Triggers:**
+  - HubAnnounce (heartbeat)
+  - HubStatusReport
+  - update_heartbeat()
+
+  **Timeout default: 30s**
+  degraded threshold: 15s
+  offline threshold: 30s
+end note
+
+note right of OFFLINE
+  **On transition to OFFLINE:**
+  1. orchestrator.tick() detects timeout
+  2. Broadcasts HUB_OFFLINE event
+  3. FleetClient triggers
+     on_hub_offline callbacks
+  4. send_command() rejects
+     with ValueError
+end note
+
+note bottom of UNREGISTERED
+  **Hub lifecycle:**
+  Each hub starts unregistered.
+  HubAgent.start() sends initial
+  HubAnnounce to trigger discovery.
+end note
+
+@enduml

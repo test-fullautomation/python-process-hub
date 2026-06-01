@@ -35,6 +35,7 @@ and extensibility.
    \item \textbf{Platform Abstraction}: Windows and Unix process handling
    \item \textbf{Web Dashboard}: Real-time monitoring via browser (FastAPI-based)
    \item \textbf{Logging Integration}: Optional centralized logging (Fluentbit, Telegraf)
+   \item \textbf{Fleet Orchestrator}: Coordinate multiple ProcessHub instances across PCs from a central point
 \end{itemize}
 
 \subsubsection{Design Philosophy}
@@ -86,6 +87,11 @@ ProcessHub is organized into distinct layers, each with specific responsibilitie
 
    \item[Logging Layer] Optional integration with centralized logging servers like
         Fluentbit or Telegraf.
+
+   \item[Fleet Layer] Optional overlay for multi-hub coordination. Contains the
+        FleetOrchestrator (central coordinator), HubAgent (sidecar per hub),
+        FleetClient (CI/CD API), HubRegistry (hub tracking), and FleetWebAPI
+        (REST dashboard). Does not modify any other layer.
 \end{description}
 
 % ============================================================================
@@ -493,6 +499,167 @@ executor = LoggingAwareExecutor(
 \end{verbatim}
 
 % ============================================================================
+\subsection{Fleet Orchestrator}
+% ============================================================================
+
+ProcessHub includes an optional \textbf{Fleet Orchestrator} for coordinating multiple ProcessHub
+instances across different PCs from a central point. The fleet layer is a pure overlay -- it does
+not modify the core, runtime, or transport modules.
+
+\begin{verbatim}
+                    +--------------------+
+                    | FleetOrchestrator  |
+                    |   (Central PC)     |
+                    |   + HubRegistry    |
+                    |   + FleetWebAPI    |
+                    +---------+----------+
+                              |
+                 +------------+------------+
+                 |  EventBus (RabbitMQ)    |
+                 |  fleet.* routing keys   |
+                 +----+-------+-------+---+
+                      |       |       |
+            +---------+  +----+----+  +----------+
+            | Hub PC 1|  | Hub PC 2|  | Hub PC N |
+            | HubAgent|  | HubAgent|  | HubAgent |
+            | + Server|  | + Server|  | + Server |
+            +---------+  +---------+  +----------+
+\end{verbatim}
+
+\subsubsection{Fleet Components}
+
+\begin{description}
+   \item[FleetOrchestrator] Central coordinator that discovers hubs via HubAnnounce messages,
+        tracks hub health via heartbeat timeouts, routes commands from FleetClient to target hubs,
+        and provides fleet-wide state snapshots. Runs a periodic \texttt{tick()} for health checking.
+
+   \item[HubAgent] Lightweight sidecar that runs alongside each ProcessHubServer. Sends periodic
+        heartbeats (HubAnnounce) and status reports (HubStatusReport) to the orchestrator. Handles
+        incoming fleet commands (start\_process, stop\_process, reset, get\_status) by delegating
+        to the local server's public API. Uses background daemon threads for heartbeat and status loops.
+
+   \item[HubRegistry] Thread-safe registry of fleet hubs. Maintains mutable \_HubEntry objects
+        internally, exposes immutable HubSnapshot and FleetStateSnapshot externally. Health state
+        transitions: online (heartbeat within timeout/2) $\rightarrow$ degraded (within timeout)
+        $\rightarrow$ offline (exceeded timeout).
+
+   \item[FleetClient] High-level API for CI/CD pipelines, CLI tools, and scripts. Provides
+        single-hub commands (start\_processes, stop\_processes, reset\_hub, get\_hub\_detail) and
+        batch operations (start\_on\_all\_hubs, stop\_all\_processes, reset\_all\_hubs). Supports
+        event callbacks via on\_hub\_online() and on\_hub\_offline().
+
+   \item[FleetWebAPI] Optional REST API and HTML dashboard built with FastAPI. Provides endpoints
+        for fleet status, hub listing, hub details, and command routing. HTML dashboard auto-refreshes
+        every 5 seconds. Swagger documentation at \texttt{/docs}.
+\end{description}
+
+\subsubsection{Fleet Protocol Messages}
+
+All fleet messages extend \texttt{MessageBase} for protocol versioning:
+
+\begin{description}
+   \item[HubAnnounce] Hub agent heartbeat and registration (hub\_id, hub\_name, host, capabilities)
+   \item[HubRegistered] Orchestrator acknowledgement of new hub registration
+   \item[HubDeregistered] Hub removal notification (graceful shutdown or timeout)
+   \item[HubStatusReport] Periodic status from hub agent (process\_count, connection\_count, processes)
+   \item[FleetCommand] Command from orchestrator to hub agent (command\_id, action, params)
+   \item[FleetCommandResult] Result from hub agent back to orchestrator (success, message, data)
+\end{description}
+
+\subsubsection{Fleet Topics}
+
+Fleet topics use the \texttt{FLEET\_} prefix to separate from local hub topics:
+
+\begin{verbatim}
+class FleetTopics(str, Enum):
+    HUB_ANNOUNCE       = "FLEET_HUB_ANNOUNCE"
+    HUB_REGISTERED     = "FLEET_HUB_REGISTERED"
+    HUB_DEREGISTER     = "FLEET_HUB_DEREGISTER"
+    HUB_STATUS_REPORT  = "FLEET_HUB_STATUS_REPORT"
+    FLEET_COMMAND       = "FLEET_COMMAND"
+    FLEET_COMMAND_RESULT = "FLEET_COMMAND_RESULT"
+    HUB_ONLINE         = "FLEET_HUB_ONLINE"
+    HUB_OFFLINE        = "FLEET_HUB_OFFLINE"
+\end{verbatim}
+
+\subsubsection{Fleet Quick Start}
+
+\begin{verbatim}
+from ProcessHub.fleet import FleetOrchestrator, HubAgent, FleetClient
+from ProcessHub.transport.inmemory_transport import InMemoryTransport
+
+# Central PC: Start orchestrator
+fleet_transport = InMemoryTransport()
+fleet_transport.start()
+
+orchestrator = FleetOrchestrator(
+    transport=fleet_transport, health_timeout=30.0
+)
+orchestrator.start()
+
+# Hub PC: Attach agent to existing server
+agent = HubAgent(
+    server=my_server,
+    transport=fleet_transport,
+    hub_id="bench-1",
+    hub_name="HIL Bench 1",
+)
+agent.start()
+
+# CI/CD: Use FleetClient
+client = FleetClient(
+    transport=fleet_transport, orchestrator=orchestrator
+)
+
+# Check fleet health
+snapshot = client.get_fleet_status()
+print(f"Online: {snapshot.online_hubs}/{snapshot.total_hubs}")
+
+# Start processes on a specific hub
+client.start_processes("bench-1", ["ecu_simulator"])
+
+# Batch operations across all online hubs
+client.start_on_all_hubs(["data_logger"])
+client.reset_all_hubs()
+\end{verbatim}
+
+\subsubsection{Fleet Web Dashboard}
+
+\begin{verbatim}
+from ProcessHub.fleet.web_api import FleetWebAPI
+
+web = FleetWebAPI(
+    orchestrator=orchestrator, host="0.0.0.0", port=2510
+)
+web.start()
+# Dashboard: http://localhost:2510
+# Swagger:   http://localhost:2510/docs
+\end{verbatim}
+
+\subsubsection{Fleet REST API Endpoints}
+
+\begin{description}
+   \item[GET /api/fleet/status] Fleet-wide status snapshot (total\_hubs, online\_hubs, hubs list)
+   \item[GET /api/fleet/hubs] List all registered hubs
+   \item[GET /api/fleet/hubs/\{hub\_id\}] Single hub details
+   \item[POST /api/fleet/command] Send a command to a hub (hub\_id, action, params)
+   \item[POST /api/fleet/hubs/\{hub\_id\}/start] Start processes on a hub
+   \item[POST /api/fleet/hubs/\{hub\_id\}/stop] Stop processes on a hub
+   \item[POST /api/fleet/hubs/\{hub\_id\}/reset] Reset a hub
+   \item[GET /] HTML fleet monitoring dashboard (auto-refreshes every 5 seconds)
+\end{description}
+
+\subsubsection{Fleet Installation}
+
+\begin{verbatim}
+# Install with fleet support
+pip install python-process-hub[fleet]
+
+# Fleet web API requires FastAPI and uvicorn
+pip install fastapi uvicorn
+\end{verbatim}
+
+% ============================================================================
 \subsection{Installation}
 % ============================================================================
 
@@ -508,11 +675,14 @@ pip install python-process-hub[zmq]
 # With web dashboard
 pip install python-process-hub[web]
 
+# With fleet orchestrator
+pip install python-process-hub[fleet]
+
 # Development dependencies
 pip install python-process-hub[dev]
 
 # All optional dependencies
-pip install python-process-hub[zmq,web,dev]
+pip install python-process-hub[zmq,web,fleet,dev]
 \end{verbatim}
 
 \subsubsection{From Source}
@@ -738,6 +908,12 @@ The following PlantUML diagrams are available in the \texttt{docs/diagrams/} fol
    \item[sequence\_process\_start.puml] Process start sequence
    \item[sequence\_restart\_flow.puml] Restart coordination sequence
    \item[state\_restart.puml] Restart state machine
+   \item[fleet\_overview.puml] Fleet system overview with orchestrator, hub PCs, and clients
+   \item[fleet\_component.puml] Fleet component diagram with module dependencies
+   \item[class\_fleet.puml] Fleet models, registry, orchestrator, agent, and client classes
+   \item[sequence\_fleet\_discovery.puml] Hub discovery, heartbeat, and deregistration sequence
+   \item[sequence\_fleet\_command.puml] Command routing from client through orchestrator to hub
+   \item[state\_hub\_health.puml] Hub health state machine (online/degraded/offline transitions)
 \end{description}
 
 To generate PNG images from PlantUML files:

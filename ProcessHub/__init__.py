@@ -27,6 +27,12 @@
 # 15.01.2026 / V 1.0.0 / Nguyen Huynh Tri Cuong
 # - Initial version migrated from ta-framework-tsb process_hub
 #
+# 06.02.2026 / V 1.1.0 / Nguyen Huynh Tri Cuong
+# - Added fleet orchestrator overlay for multi-hub coordination
+# - New package: ProcessHub.fleet (orchestrator, hub_agent, fleet_client,
+#   hub_registry, models, topics, web_api)
+# - Optional fleet imports with HAS_FLEET flag
+#
 # *******************************************************************************
 """
 Python Process Hub - Process lifecycle management with ZMQ-based coordination.
@@ -124,6 +130,17 @@ from .logging.integration import (
     LoggingAwareExecutor,
 )
 
+# Fleet orchestrator (optional overlay)
+try:
+    from .fleet import FleetOrchestrator, HubAgent, FleetClient, FleetTopics
+    HAS_FLEET = True
+except ImportError:
+    HAS_FLEET = False
+    FleetOrchestrator = None  # type: ignore
+    HubAgent = None  # type: ignore
+    FleetClient = None  # type: ignore
+    FleetTopics = None  # type: ignore
+
 __all__ = [
     # Version
     "__version__",
@@ -159,4 +176,10 @@ __all__ = [
     "LoggingServerType",
     "LoggingConfig",
     "LoggingAwareExecutor",
+    # Fleet orchestrator (optional)
+    "FleetOrchestrator",
+    "HubAgent",
+    "FleetClient",
+    "FleetTopics",
+    "HAS_FLEET",
 ]
